@@ -1,0 +1,9 @@
+[submodule "submodules/cargs"]
+	path = submodules/cargs
+	url = https://github.com/likle/cargs.git
+[submodule "submodules/wch-ch56x-lib"]
+	path = submodules/wch-ch56x-lib
+	url = https://github.com/hydrausb3/wch-ch56x-lib
+[submodule "submodules/wch-ch56x-bsp"]
+	path = submodules/wch-ch56x-bsp
+	url = https://github.com/hydrausb3/wch-ch56x-bsp

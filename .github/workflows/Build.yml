@@ -1,0 +1,148 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, hydradancer ]
+  pull_request:
+    branches: [ main, hydradancer ]
+
+env:
+  RISCV_GCC_PATH: /opt/gcc_riscv/xpack-riscv-none-elf-gcc-12.2.0-1/bin
+
+jobs:
+  Firmware-build-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Checkout submodules
+        run: |
+            git submodule update --init
+            cd submodules/wch-ch56x-lib
+            git submodule update --init
+            cd ../..
+            git fetch --prune --unshallow
+
+      - name: Cache GCC archive
+        uses: actions/cache@v3
+        with:
+          path: /opt/gcc_riscv
+          key: gcc-riscv-${{ runner.os }}-${{ hashFiles('xpack-riscv-none-elf-gcc-12.2.0-1-linux-x64.tar.gz') }}
+          restore-keys: gcc-riscv-${{ runner.os }}-
+
+      - name: Use GCC archive cache
+        run: |
+          ls /opt/gcc_riscv/xpack-riscv-none-elf-gcc-12.2.0-1/bin/riscv-none-elf-gcc || true
+
+      - name: Restore GCC archive cache
+        if: steps.use-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p /opt/gcc_riscv
+          wget https://github.com/hydrausb3/riscv-none-elf-gcc-xpack/releases/download/12.2.0-1/xpack-riscv-none-elf-gcc-12.2.0-1-linux-x64.tar.gz
+          tar xvfz xpack-riscv-none-elf-gcc-12.2.0-1-linux-x64.tar.gz -C /opt/gcc_riscv/
+
+      - name: Verify GCC installation
+        run: |
+          export PATH="$PATH:${{ env.RISCV_GCC_PATH }}"
+          riscv-none-elf-gcc --version
+
+      - name: Get build timestamp
+        id: id_date
+        shell: bash
+        run: echo "timestamp=$(date +%Y-%m-%d-%H-%M-%S)" >> $GITHUB_OUTPUT
+
+      - name: Get app version + timestamp
+        id: id_version
+        run: echo "app_version=$(git describe --tags HEAD)-${{steps.id_date.outputs.timestamp}}" >> $GITHUB_OUTPUT
+
+      - name: Build ${{ matrix.PROJECT_NAME }}
+        run: |
+          export PATH="$PATH:${{ env.RISCV_GCC_PATH }}"
+          cmake --toolchain ../cmake/wch-ch56x-toolchain.cmake -DCMAKE_BUILD_TYPE=release -DBUILD_TESTS=1 -DBUILD_TOOLS=1 -B build .
+          cmake --build build/
+          cmake --install build/
+
+      - name: Upload artifact all-firmwares${{steps.id_version.outputs.app_version}}
+        uses: actions/upload-artifact@v3
+        with:
+          name: all-firmwares${{steps.id_version.outputs.app_version}}
+          path: |
+            out/**/*.bin
+            out/**/*.elf
+
+  native_benchmarks:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        PROJECT_NAME: [test_loopback, test_speedtest]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Checkout
+      run: |
+        git submodule update --init
+        git fetch --prune --unshallow
+
+    - name: Install prerequisites
+      run: |
+        set -x
+        sudo apt -q update
+        sudo apt install libusb-1.0-0-dev
+
+    - name: Get build timestamp
+      id: id_date
+      shell: bash
+      run: echo "timestamp=$(date +%Y-%m-%d-%H-%M-%S)" >> $GITHUB_OUTPUT
+
+    - name: Get app version + timestamp
+      id: id_version
+      run: echo "app_version=$(git describe --tags HEAD)-${{steps.id_date.outputs.timestamp}}" >> $GITHUB_OUTPUT
+
+    - name: Build app
+      shell: bash
+      run: |
+         cd hydradancer/tests/native/${{ matrix.PROJECT_NAME }}
+         make
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: native-${{ matrix.PROJECT_NAME }}${{steps.id_version.outputs.app_version}}
+        path: hydradancer/tests/native/${{ matrix.PROJECT_NAME }}/${{ matrix.PROJECT_NAME }}
+
+  facedancer_replacements:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        PROJECT_NAME: [facedancer_replacement_loopback, facedancer_replacement_speedtest]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Checkout
+      run: |
+        git submodule update --init
+        git fetch --prune --unshallow
+
+    - name: Install prerequisites
+      run: |
+        set -x
+        sudo apt -q update
+        sudo apt install libusb-1.0-0-dev
+
+    - name: Get build timestamp
+      id: id_date
+      shell: bash
+      run: echo "timestamp=$(date +%Y-%m-%d-%H-%M-%S)" >> $GITHUB_OUTPUT
+
+    - name: Get app version + timestamp
+      id: id_version
+      run: echo "app_version=$(git describe --tags HEAD)-${{steps.id_date.outputs.timestamp}}" >> $GITHUB_OUTPUT
+
+    - name: Build app
+      shell: bash
+      run: |
+         cd hydradancer/tests/test_backend/${{ matrix.PROJECT_NAME }}
+         make
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: native-${{ matrix.PROJECT_NAME }}${{steps.id_version.outputs.app_version}}
+        path: hydradancer/tests/test_backend/${{ matrix.PROJECT_NAME }}/${{ matrix.PROJECT_NAME }}

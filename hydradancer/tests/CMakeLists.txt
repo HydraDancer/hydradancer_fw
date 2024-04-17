@@ -1,0 +1,2 @@
+
+add_subdirectory(test_backend/firmware_emulation_board)
