@@ -104,7 +104,7 @@ void hspi_rx_callback(uint8_t* buffer, uint16_t size, uint16_t custom_register)
 		if (request_code == HSPI_SERDES_EMULATION_BOARD_RESET)
 		{
 			LOG_IF(LOG_LEVEL_DEBUG, LOG_ID_USER, "HSPI_SERDES_EMULATION_BOARD_RESET\r\n");
-			hydra_interrupt_queue_set_next_task(reinit_board, NULL, NULL, INTERRUPT_QUEUE_LOW_PRIO);
+			hydra_interrupt_queue_set_next_task(reinit_board, NULL, NULL);
 			return;
 		}
 		else if (request_code == HSPI_SERDES_EMULATION_BOARD_BUS_RESET)
