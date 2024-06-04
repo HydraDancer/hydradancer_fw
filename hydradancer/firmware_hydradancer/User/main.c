@@ -50,6 +50,7 @@ int main()
 	bsp_gpio_init();
 	/* Init BSP (MCU Frequency & SysTick) */
 	bsp_init(FREQ_SYS);
+	MAX_BUSY_WAIT_CYCLES = bsp_ms_nbcycles * (uint64_t)MAX_BUSY_WAIT_CYCLES_MS;
 
 	LOG_INIT(FREQ_SYS);
 	hydra_interrupt_queue_init();

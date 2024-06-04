@@ -12,6 +12,7 @@
 
 #include "wch-ch56x-lib/memory/fifo.h"
 #include "wch-ch56x-lib/memory/pool.h"
+#include "wch-ch56x-lib/memory/ramx_alloc.h"
 #include "wch-ch56x-lib/USBDevice/usb_device.h"
 #include "wch-ch56x-lib/USBDevice/usb_endpoints.h"
 
@@ -50,6 +51,9 @@
 #define BLINK_USB3 (250) // Blink LED each 500ms (250*2)
 #define BLINK_USB2 (1000) // Blink LED each 2000ms (1000*2)
 
+#define MAX_BUSY_WAIT_CYCLES_MS 5
+extern uint64_t MAX_BUSY_WAIT_CYCLES;
+
 typedef struct __attribute__((packed))
 {
 	uint8_t ep_in_status;
@@ -72,7 +76,8 @@ extern __attribute__((aligned(16))) volatile uint8_t boards_ready __attribute__(
 extern __attribute__((aligned(16))) volatile bool event_transfer_finished;
 extern __attribute__((aligned(16))) volatile bool start_polling;
 
-#define EVENT_QUEUE_SIZE 32
+#define EVENT_QUEUE_SIZE 100 // don't forget to update it in the Facedancer backend as well
+
 extern __attribute__((aligned(16))) volatile hydradancer_event_t _events_buffer[EVENT_QUEUE_SIZE] __attribute__((section(".DMADATA")));
 
 typedef struct __attribute__((packed))
@@ -89,4 +94,67 @@ void _ep_queue_cleanup(uint8_t* data);
 HYDRA_FIFO_DECLR(event_queue, hydradancer_event_t, EVENT_QUEUE_SIZE);
 
 void hydradancer_send_event(void);
+
+__attribute__((always_inline)) inline static void write_event(uint8_t type, uint8_t value)
+{
+	bsp_disable_interrupt();
+	hydradancer_event_t event = {
+		.type = type,
+		.value = value,
+	};
+	fifo_write(&event_queue, &event, 1);
+	bsp_enable_interrupt();
+}
+
+__attribute__((always_inline)) inline static void hydradancer_status_set_out(uint8_t endp_num)
+{
+	bsp_disable_interrupt();
+	hydradancer_status.ep_out_status |= (1 << endp_num);
+	bsp_enable_interrupt();
+}
+
+__attribute__((always_inline)) inline static void hydradancer_status_set_in(uint8_t endp_num)
+{
+	bsp_disable_interrupt();
+	hydradancer_status.ep_in_status |= (1 << endp_num);
+	bsp_enable_interrupt();
+}
+
+__attribute__((always_inline)) inline static void hydradancer_status_set_nak(uint8_t endp_num)
+{
+	bsp_disable_interrupt();
+	hydradancer_status.ep_in_nak |= (1 << endp_num);
+	bsp_enable_interrupt();
+}
+
+__attribute__((always_inline)) inline static void hydradancer_status_clear_out(uint8_t endp_num)
+{
+	bsp_disable_interrupt();
+	hydradancer_status.ep_out_status &= ~(1 << endp_num);
+	bsp_enable_interrupt();
+}
+
+__attribute__((always_inline)) inline static void hydradancer_status_clear_in(uint8_t endp_num)
+{
+	bsp_disable_interrupt();
+	hydradancer_status.ep_in_status &= ~(1 << endp_num);
+	bsp_enable_interrupt();
+}
+
+__attribute__((always_inline)) inline static void hydradancer_status_clear_nak(uint8_t endp_num)
+{
+	bsp_disable_interrupt();
+	hydradancer_status.ep_in_nak &= ~(1 << endp_num);
+	bsp_enable_interrupt();
+}
+
+__attribute__((always_inline)) inline static void hydradancer_recover_out_interrupt(uint8_t endp_num)
+{
+	ramx_pool_free(usb_device_1.endpoints.tx[endpoint_mapping[endp_num]].buffer);
+	hydradancer_status_clear_out(endp_num);
+	bsp_disable_interrupt();
+	endp_rx_set_state(&usb_device_0, endp_num, ENDP_STATE_ACK);
+	bsp_enable_interrupt();
+}
+
 #endif

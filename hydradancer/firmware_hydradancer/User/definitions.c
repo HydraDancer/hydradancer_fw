@@ -9,6 +9,7 @@ __attribute__((aligned(16))) volatile uint8_t boards_ready __attribute__((sectio
 __attribute__((aligned(16))) volatile bool event_transfer_finished = true;
 __attribute__((aligned(16))) volatile bool start_polling = false;
 __attribute__((aligned(16))) volatile hydradancer_event_t _events_buffer[EVENT_QUEUE_SIZE] __attribute__((section(".DMADATA")));
+uint64_t MAX_BUSY_WAIT_CYCLES = 1234567899; //set to a lower value in main, after bsp_init
 
 HYDRA_POOL_DEF(ep_queue, ep_queue_member_t, 100);
 
@@ -27,8 +28,8 @@ void hydradancer_send_event(void)
 		if (events_count > 0)
 		{
 			event_transfer_finished = false;
-			fifo_read_n(&event_queue, (void*)_events_buffer, events_count);
-			endp_tx_set_new_buffer(&usb_device_1, 1, (uint8_t*)_events_buffer, events_count * sizeof(hydradancer_event_t));
+			uint16_t count_read = fifo_read_n(&event_queue, (void*)_events_buffer, events_count);
+			endp_tx_set_new_buffer(&usb_device_1, 1, (uint8_t*)_events_buffer, count_read * sizeof(hydradancer_event_t));
 		}
 	}
 }

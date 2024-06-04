@@ -28,13 +28,9 @@
 __attribute__((always_inline)) static inline void usb_emulation_endp_tx_complete(TRANSACTION_STATUS status, uint8_t endp_num)
 {
 	ramx_pool_free(usb_device_0.endpoints.tx[endp_num].buffer);
-	hydradancer_status.ep_in_nak &= ~(0x01 << endp_num);
-	hydradancer_status.ep_in_status |= (0x01 << endp_num);
-	hydradancer_event_t event = {
-		.type = EVENT_IN_BUFFER_AVAILABLE,
-		.value = endp_num,
-	};
-	fifo_write(&event_queue, &event, 1);
+	hydradancer_status_clear_nak(endp_num);
+	hydradancer_status_set_in(endp_num);
+	write_event(EVENT_IN_BUFFER_AVAILABLE, endp_num);
 }
 
 void usb_emulation_endp0_tx_complete(TRANSACTION_STATUS status);
@@ -88,49 +84,100 @@ void usb_emulation_endp7_tx_complete(TRANSACTION_STATUS status)
 bool _usb_emulation_endp0_passthrough_setup_callback(uint8_t* data);
 bool _usb_emulation_endp0_passthrough_setup_callback(uint8_t* data)
 {
-	// can't NAK a setup, can't STALL because it would mean the request is not supported
-	// so we just wait
-	while (hydradancer_status.ep_out_status & (0x01 << 0))
-	{
-		WWDG_SetCounter(0); // rearm the watchdog
-		continue;
-	}
-	LOG_IF(LOG_LEVEL_DEBUG, LOG_ID_USER, "endp0_passthrough_setup_callback size %d data %d %d %d %d %d %d \r\n", size, ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5]);
 	uint8_t* ptr = ((ep_queue_member_t*)data)->ptr;
 	uint16_t size = ((ep_queue_member_t*)data)->size;
-	hydradancer_status.ep_out_status |= (0x01 << 0);
-	bsp_disable_interrupt();
+
+	// we need to wait here, because we can't NAK a packet with PID setup
+	// the only accepted answer is ACK, so we have to store it and wait for Facedancer to be ready
+	uint64_t start = bsp_get_SysTickCNT();
+	uint64_t curr = 0;
+	uint64_t delta = 0;
+
+	while (hydradancer_status.ep_out_status & (0x01 << 0) && delta < MAX_BUSY_WAIT_CYCLES)
+	{
+		if (start_polling)
+			hydradancer_send_event();
+		WWDG_SetCounter(0); // rearm the watchdog
+		curr = bsp_get_SysTickCNT();
+		delta = start - curr; // SysTickCNT is decremented so comparison is inverted
+	}
+
+	hydradancer_status_set_out(0);
 	endp_tx_set_new_buffer(&usb_device_1, endpoint_mapping[0], ptr, size);
-	bsp_enable_interrupt();
-	hydradancer_event_t event = {
-		.type = EVENT_OUT_BUFFER_AVAILABLE,
-		.value = 0,
-	};
-	fifo_write(&event_queue, &event, 1);
+	write_event(EVENT_OUT_BUFFER_AVAILABLE, 0);
+
+	// wait for the packet to be transmitted or count to reach MAX_COUNT
+	// we still miss some interrupts, count attemps to mitigate this issue by considering
+	// the packet has been sent after some time
+	start = bsp_get_SysTickCNT();
+	curr = 0;
+	delta = 0;
+	while (hydradancer_status.ep_out_status & (0x01 << 0) && delta < MAX_BUSY_WAIT_CYCLES)
+	{
+		if (start_polling)
+			hydradancer_send_event();
+		WWDG_SetCounter(0); // rearm the watchdog
+		curr = bsp_get_SysTickCNT();
+		delta = start - curr; // SysTickCNT is decremented so comparison is inverted
+	}
+
+	if (delta >= MAX_BUSY_WAIT_CYCLES)
+	{
+		LOG_IF_LEVEL(LOG_LEVEL_CRITICAL, "_usb_emulation_endp0_passthrough_setup_callback RECOVERY\r\n");
+		hydradancer_recover_out_interrupt(0);
+	}
 	return true;
 }
 
 uint8_t usb_emulation_endp0_passthrough_setup_callback(uint8_t* ptr, uint16_t size);
 uint8_t usb_emulation_endp0_passthrough_setup_callback(uint8_t* ptr, uint16_t size)
 {
-	usb_device_0.endpoints.rx[0].buffer = ramx_pool_alloc_bytes(ENDP_1_15_MAX_PACKET_SIZE);
+	uint8_t* buffer = ramx_pool_alloc_bytes(ENDP_1_15_MAX_PACKET_SIZE);
+	if (buffer == NULL)
+	{
+		LOG_IF_LEVEL(LOG_LEVEL_CRITICAL, "usb_emulation_endp0_passthrough_setup_callback Could not allocate pool buf\r\n");
+		return ENDP_STATE_NAK;
+	}
 	ep_queue_member_t* ep_queue_member = hydra_pool_get(&ep_queue);
-	ep_queue_member->ptr = ptr;
+	if (ep_queue_member == NULL)
+	{
+		ramx_pool_free(buffer);
+		LOG_IF_LEVEL(LOG_LEVEL_CRITICAL, "usb_emulation_endp0_passthrough_setup_callback could not allocate ep_queue_member");
+		return ENDP_STATE_NAK;
+	}
+	memcpy(buffer, ptr, size);
+	ep_queue_member->ptr = buffer;
 	ep_queue_member->size = size;
-	hydra_interrupt_queue_set_next_task(_usb_emulation_endp0_passthrough_setup_callback, (uint8_t*)ep_queue_member, _ep_queue_cleanup, INTERRUPT_QUEUE_LOW_PRIO);
-	return ENDP_STATE_ACK;
+	hydra_interrupt_queue_set_next_task(_usb_emulation_endp0_passthrough_setup_callback, (uint8_t*)ep_queue_member, _ep_queue_cleanup);
+	return ENDP_STATE_NAK;
 }
 
 static bool _usb_emulation_endp_rx_callback(uint8_t* data)
 {
 	ep_queue_member_t* ep_queue_member = (ep_queue_member_t*)data;
+	hydradancer_status_set_out(ep_queue_member->ep_num);
 	endp_tx_set_new_buffer(&usb_device_1, endpoint_mapping[ep_queue_member->ep_num], ep_queue_member->ptr, ep_queue_member->size);
-	hydradancer_event_t event = {
-		.type = EVENT_OUT_BUFFER_AVAILABLE,
-		.value = ep_queue_member->ep_num,
-	};
-	fifo_write(&event_queue, &event, 1);
-	return ENDP_STATE_ACK;
+	write_event(EVENT_OUT_BUFFER_AVAILABLE, ep_queue_member->ep_num);
+
+	uint64_t start = bsp_get_SysTickCNT();
+	uint64_t curr = 0;
+	uint64_t delta = 0;
+
+	while (hydradancer_status.ep_out_status & (0x01 << ep_queue_member->ep_num) && delta < MAX_BUSY_WAIT_CYCLES)
+	{
+		if (start_polling)
+			hydradancer_send_event();
+		WWDG_SetCounter(0); // rearm the watchdog
+		curr = bsp_get_SysTickCNT();
+		delta = start - curr; // SysTickCNT is decremented so comparison is inverted
+	}
+
+	if (delta >= MAX_BUSY_WAIT_CYCLES)
+	{
+		LOG_IF_LEVEL(LOG_LEVEL_CRITICAL, "_usb_emulation_endp_rx_callback RECOVERY\r\n");
+		hydradancer_recover_out_interrupt(ep_queue_member->ep_num);
+	}
+	return true;
 }
 
 __attribute__((always_inline)) static inline uint8_t usb_emulation_endp_rx_callback(uint8_t* const ptr, uint16_t size, uint8_t endp_num)
@@ -139,49 +186,87 @@ __attribute__((always_inline)) static inline uint8_t usb_emulation_endp_rx_callb
 	{
 		return ENDP_STATE_NAK;
 	}
-	LOG_IF(LOG_LEVEL_DEBUG, LOG_ID_USER, "endp%d_rx_callback %d %d %d %d %d %d \r\n", endp_num, ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5]);
+
+	uint8_t* buffer = ramx_pool_alloc_bytes(ENDP_1_15_MAX_PACKET_SIZE);
+	if (buffer == NULL)
+	{
+		LOG_IF_LEVEL(LOG_LEVEL_CRITICAL, "usb_emulation_endp_rx_callback could not allocate buffer\r\n");
+		return ENDP_STATE_NAK;
+	}
 	ep_queue_member_t* ep_queue_member = hydra_pool_get(&ep_queue);
+	if (ep_queue_member == NULL)
+	{
+		ramx_pool_free(buffer);
+		LOG_IF_LEVEL(LOG_LEVEL_CRITICAL, "usb_emulation_endp_rx_callback could not allocate ep queue member\r\n");
+		return ENDP_STATE_NAK;
+	}
+
 	ep_queue_member->ep_num = endp_num;
 	ep_queue_member->ptr = ptr;
 	ep_queue_member->size = size;
-	hydra_interrupt_queue_set_next_task(_usb_emulation_endp_rx_callback, (uint8_t*)ep_queue_member, _ep_queue_cleanup, INTERRUPT_QUEUE_LOW_PRIO);
-	hydradancer_status.ep_out_status |= (0x01 << endp_num);
-	usb_device_0.endpoints.rx[endp_num].buffer = ramx_pool_alloc_bytes(ENDP_1_15_MAX_PACKET_SIZE);
-	return ENDP_STATE_ACK;
+	hydra_interrupt_queue_set_next_task(_usb_emulation_endp_rx_callback, (uint8_t*)ep_queue_member, _ep_queue_cleanup);
+	usb_device_0.endpoints.rx[endp_num].buffer = buffer;
+	return ENDP_STATE_NAK;
 }
 
 bool _usb_emulation_endp0_rx_callback(uint8_t* data);
 bool _usb_emulation_endp0_rx_callback(uint8_t* data)
 {
-	while (hydradancer_status.ep_out_status & (0x01 << 0))
-	{
-		WWDG_SetCounter(0); // rearm the watchdog
-		continue;
-	}
-	LOG_IF(LOG_LEVEL_DEBUG, LOG_ID_USER, "endp%d_rx_callback size %d data %d %d %d %d %d %d \r\n", 0, size, ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5]);
+	hydradancer_status_set_out(0);
+
 	uint8_t* ptr = ((ep_queue_member_t*)data)->ptr;
 	uint16_t size = ((ep_queue_member_t*)data)->size;
-	hydradancer_status.ep_out_status |= (0x01 << 0);
-	bsp_disable_interrupt();
+
 	endp_tx_set_new_buffer(&usb_device_1, endpoint_mapping[0], ptr, size);
-	bsp_enable_interrupt();
-	hydradancer_event_t event = {
-		.type = EVENT_OUT_BUFFER_AVAILABLE,
-		.value = 0,
-	};
-	fifo_write(&event_queue, &event, 1);
+	write_event(EVENT_OUT_BUFFER_AVAILABLE, 0);
+
+	uint64_t start = bsp_get_SysTickCNT();
+	uint64_t curr = 0;
+	uint64_t delta = 0;
+
+	while (hydradancer_status.ep_out_status & (0x01 << 0) && delta < MAX_BUSY_WAIT_CYCLES)
+	{
+		if (start_polling)
+			hydradancer_send_event();
+		WWDG_SetCounter(0); // rearm the watchdog
+		curr = bsp_get_SysTickCNT();
+		delta = start - curr; // SysTickCNT is decremented so comparison is inverted
+	}
+
+	if (delta >= MAX_BUSY_WAIT_CYCLES)
+	{
+		LOG_IF_LEVEL(LOG_LEVEL_CRITICAL, "_usb_emulation_endp0_rx_callback RECOVERY\r\n");
+		hydradancer_recover_out_interrupt(0);
+	}
 	return true;
 }
 
 uint8_t usb_emulation_endp0_rx_callback(uint8_t* const ptr, uint16_t size);
 uint8_t usb_emulation_endp0_rx_callback(uint8_t* const ptr, uint16_t size)
 {
-	usb_device_0.endpoints.rx[0].buffer = ramx_pool_alloc_bytes(ENDP_1_15_MAX_PACKET_SIZE);
+	if (hydradancer_status.ep_out_status & (0x01 << 0))
+	{
+		return ENDP_STATE_NAK;
+	}
+
+	uint8_t* buffer = ramx_pool_alloc_bytes(ENDP_1_15_MAX_PACKET_SIZE);
+	if (buffer == NULL)
+	{
+		LOG_IF_LEVEL(LOG_LEVEL_CRITICAL, "usb_emulation_endp0_passthrough_setup_callback Could not allocate pool buf\r\n");
+		return ENDP_STATE_NAK;
+	}
 	ep_queue_member_t* ep_queue_member = hydra_pool_get(&ep_queue);
-	ep_queue_member->ptr = ptr;
+	if (ep_queue_member == NULL)
+	{
+		ramx_pool_free(buffer);
+		LOG_IF_LEVEL(LOG_LEVEL_CRITICAL, "usb_emulation_endp0_passthrough_setup_callback could not allocate ep_queue_member");
+		return ENDP_STATE_NAK;
+	}
+	memcpy(buffer, ptr, size);
+	ep_queue_member->ptr = buffer;
 	ep_queue_member->size = size;
-	hydra_interrupt_queue_set_next_task(_usb_emulation_endp0_rx_callback, (uint8_t*)ep_queue_member, _ep_queue_cleanup, INTERRUPT_QUEUE_LOW_PRIO);
-	return ENDP_STATE_ACK;
+	hydra_interrupt_queue_set_next_task(_usb_emulation_endp0_rx_callback, (uint8_t*)ep_queue_member, _ep_queue_cleanup);
+	return ENDP_STATE_NAK;
 }
 
 uint8_t usb_emulation_endp1_rx_callback(uint8_t* const ptr, uint16_t size);
@@ -228,12 +313,8 @@ void usb_emulation_nak_callback(uint8_t endp_num)
 {
 	if (!(hydradancer_status.ep_in_nak & (0x01 << endp_num)))
 	{
-		hydradancer_status.ep_in_nak |= (0x01 << endp_num);
-		hydradancer_event_t event = {
-			.type = EVENT_NAK,
-			.value = endp_num,
-		};
-		fifo_write(&event_queue, &event, 1);
+		hydradancer_status_set_nak(endp_num);
+		write_event(EVENT_NAK, endp_num);
 	}
 }
 
@@ -264,12 +345,7 @@ void usb_emulation_usb2_device_handle_bus_reset(void)
 	boards_ready = 1;
 	bsp_enable_interrupt();
 
-	LOG_IF(LOG_LEVEL_DEBUG, LOG_ID_USER, "bus reset \r\n");
-	hydradancer_event_t event = {
-		.type = EVENT_BUS_RESET,
-		.value = 0,
-	};
-	fifo_write(&event_queue, &event, 1);
+	write_event(EVENT_BUS_RESET, 0);
 }
 
 #endif
