@@ -16,7 +16,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_LIST_DIR}/User
 
 #### wch-ch56x-lib options
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE POOL_BLOCK_SIZE=512 POOL_BLOCK_NUM=40 INTERRUPT_QUEUE_SIZE=100)
+target_compile_definitions(${PROJECT_NAME} PRIVATE POOL_BLOCK_SIZE=512 POOL_BLOCK_NUM=100 INTERRUPT_QUEUE_SIZE=40)
 
 #### logging options
 
