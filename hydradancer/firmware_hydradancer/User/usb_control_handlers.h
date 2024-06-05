@@ -224,6 +224,7 @@ uint16_t usb_control_endp0_user_handled_control_request(USB_SETUP* request, uint
 	{
 		LOG_IF(LOG_LEVEL_DEBUG, LOG_ID_USER, "ENABLE_USB_CONNECTION_REQUEST_CODE\r\n");
 		usb2_device_init();
+		usb2_enable_nak(true);
 		return 0;
 	}
 	else if (request->bRequest == SET_SPEED)
@@ -260,7 +261,6 @@ uint16_t usb_control_endp0_user_handled_control_request(USB_SETUP* request, uint
 	else if (request->bRequest == CONFIGURED)
 	{
 		LOG_IF(LOG_LEVEL_DEBUG, LOG_ID_USER, "CONFIGURED\r\n");
-		usb2_enable_nak(true);
 		start_polling = true;
 		return 0;
 	}
