@@ -10,13 +10,14 @@ As shown in the table below, Hydradancer currently supports 5 endpoints other th
 |:---:|:----:|:-:|:-:|
 Facedancer21/Raspdancer |USB2 Full-speed |EP1 OUT, EP2 IN, EP3 IN |yes|
 GreatFET One |USB2 Full-speed |3 IN / 3 OUT |yes|
-**Hydradancer** |USB2 High-speed |5 IN / 5 OUT |no|
+**Hydradancer** |USB2 High-speed |6 IN / 6 OUT |no|
 (Cynthion/LUNA)(coming early 2024) |(USB2 High-speed) |(15 IN / 15 OUT) |(yes)|
 
 <p style="text-align: center "><em>Facedancer backends functionalities</em></p>
 
 As Hydradancer tries to reach higher speeds than Facedancer21 and GreatFET, we benchmarked all the existing boards for comparison. All tests were done using the devices and scripts in the `tests` folder of our [Facedancer fork](https://github.com/HydraDancer/Facedancer). All tests were done using a single libusb transfer, except for GreatFET One which was unresponsive for packets of maximum size (64 bytes at full-speed). In this case, each packet was sent using one libusb transfer, with packets of size 63.
 
+Previous results for Hydradancer used priming, which made it faster. The new versions use NAKs to detect IN transfer requests from the host and calls Facedancer's `handle_nak` method. However devices that support setting buffers in advance ("priming") can still do it by implementing the `handle_buffer_empty` callback, which is called once per "empty buffer" event. As `handle_buffer_empty` was not called by other backends at the moment of the test, only Hydradancer was tested for both methods (answering only after NAKs or priming whenever the buffer is empty).
 
 <table class="table table-striped">
   <thead>
@@ -34,42 +35,62 @@ As Hydradancer tries to reach higher speeds than Facedancer21 and GreatFET, we b
   <tbody>
     <tr>
       <th>Hydradancer High-speed</th>
-      <td>7996.352±314.348 KB/s</td>
+      <td>3911±151 KB/s</td>
       <td>4%</td>
-      <td>499.712 KB</td>
-      <td>4224.192±157.058 KB/s</td>
+      <td>499.712KB</td>
+      <td>2653±96 KB/s</td>
       <td>4%</td>
-      <td>499.712 KB</td>
+      <td>499.712KB</td>
+      <td>99.9%</td>
+    </tr>
+    <tr>
+      <th>Hydradancer High-speed (priming)</th>
+      <td>3788±194 KB/s</td>
+      <td>5%</td>
+      <td>499.712KB</td>
+      <td>2962±118 KB/s</td>
+      <td>4%</td>
+      <td>499.712KB</td>
+      <td>99.9%</td>
+    </tr>
+    <tr>
+      <th>Hydradancer Full-speed (priming)</th>
+      <td>369.80±2.46 KB/s</td>
+      <td>1%</td>
+      <td>49.984KB</td>
+      <td>352.35±6.66 KB/s</td>
+      <td>2%</td>
+      <td>49.984KB</td>
       <td>99.9%</td>
     </tr>
     <tr>
       <th>Hydradancer Full-speed</th>
-      <td>747.295±20.899 KB/s</td>
+      <td>369.66±4.98 KB/s</td>
+      <td>1%</td>
+      <td>49.984KB</td>
+      <td>266.64±7.32 KB/s</td>
       <td>3%</td>
-      <td>49.984 KB</td>
-      <td>414.188±7.368 KB/s</td>
-      <td>2%</td>
-      <td>49.984 KB</td>
+      <td>49.984KB</td>
       <td>99.9%</td>
     </tr>
     <tr>
-      <th>GreatFET One Full-speed un par un</th>
-      <td>32.422±0.844 KB/s</td>
+      <th>GreatFET One Full-speed (one by one) (git-v2021.2.1-64-g2409575 firmware)</th>
+      <td>32.42±0.85 KB/s</td>
       <td>3%</td>
-      <td>49.959 KB</td>
-      <td>33.066±1.095 KB/s</td>
+      <td>49.959KB</td>
+      <td>33.07±1.10 KB/s</td>
       <td>3%</td>
-      <td>49.984 KB</td>
+      <td>49.984KB</td>
       <td>99.9%</td>
     </tr>
     <tr>
-      <th>Facedancer21 Full-speed</th>
-      <td>0.697±0.0 KB/s</td>
+      <th>Facedancer21 Full-speed (2014-07-05 firmware)</th>
+      <td>0.697±0.000 KB/s</td>
       <td>0%</td>
-      <td>9.984 KB</td>
-      <td>0.682±0.0 KB/s</td>
+      <td>9.984KB</td>
+      <td>0.682±0.000 KB/s</td>
       <td>0%</td>
-      <td>9.984 KB</td>
+      <td>9.984KB</td>
       <td>99.9%</td>
     </tr>
   </tbody>
@@ -81,14 +102,16 @@ As Hydradancer tries to reach higher speeds than Facedancer21 and GreatFET, we b
 
 There are two configurations for Hydradancer:
 
-* the dual-HydraUSB3 : you will need the firmware compiled from `hydradancer/firmware_control_board` and `hydradancer/firmware_emulation_board`.
 * the Hydradancer dongle : only the firmware from `hydradancer/firmware_hydradancer` is needed.
+* (unmaintained) the dual-HydraUSB3 : you will need the firmware compiled from `hydradancer/firmware_control_board` and `hydradancer/firmware_emulation_board`.
 
 To build and flash the firmware, see [the build tutorial](BUILD.md). If you don't want to build the firmwares yourself, you can skip the building part by using the [latest release](https://github.com/HydraDancer/hydradancer_fw/releases/latest).
 
 # ... and finally, using Facedancer with Hydradancer !
 
 First, clone Facedancer. While we hope to merge the Hydradancer backend for Facedancer into the [main repository](https://github.com/greatscottgadgets/Facedancer) along with some bug fixes we may have found, the Hydradancer backend is currently in our fork.
+
+For the unmaintained dual-HydraUSB3 firmware, you will need v1.0.0 of our Facedancer fork.
 
 ```shell
 git clone https://github.com/HydraDancer/Facedancer

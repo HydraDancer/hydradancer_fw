@@ -34,25 +34,26 @@ int blink_ms = BLINK_USB2;
  */
 int main()
 {
+	// Does this change anything ? Setting the fast IRQ ptr to 0 makes the board crash
+	// I did not notice any huge difference from setting priorities, fast irqs or nested interrupts
+	// so maybe it is working, but it's not life-changing
+	PFIC_SetPriority(INT_ID_USBSS, 0xa0);
+	PFIC_SetPriority(INT_ID_LINK, 0x90);
+	PFIC_SetPriority(INT_ID_USBHS, 0xc0);
+	PFIC_HaltPushCfg(ENABLE);
+	PFIC_INTNestCfg(ENABLE);
+	PFIC_SetFastIRQ((uint32_t)LINK_IRQHandler, INT_ID_LINK, 0);
+	PFIC_SetFastIRQ((uint32_t)USBSS_IRQHandler, INT_ID_USBSS, 1);
+	PFIC_SetFastIRQ((uint32_t)USBHS_IRQHandler, INT_ID_USBHS, 2);
+
 	/* Configure GPIO In/Out default/safe state for the board */
 	bsp_gpio_init();
 	/* Init BSP (MCU Frequency & SysTick) */
 	bsp_init(FREQ_SYS);
+	MAX_BUSY_WAIT_CYCLES = bsp_ms_nbcycles * (uint64_t)MAX_BUSY_WAIT_CYCLES_MS;
 
 	LOG_INIT(FREQ_SYS);
 	hydra_interrupt_queue_init();
-
-	// /* Need to check if setting priorities has any effects */
-	// PFIC_SetPriority(INT_ID_WDOG, 0x90);
-	// // does not seem to make any difference
-	// PFIC_INTNestCfg(ENABLE);
-	// PFIC_SetPriority(INT_ID_SERDES, 0x20);
-	// PFIC_SetPriority(INT_ID_USBSS, 0x60);
-	// PFIC_SetPriority(INT_ID_LINK, 0x60);
-	// PFIC_SetPriority(INT_ID_USBHS, 0x60);
-	// PFIC_SetPriority(INT_ID_HSPI, 0x20);
-	// PFIC_SetPriority(INT_ID_UART1, 0x60);
-	// PFIC_SetPriority(INT_ID_GPIO, 0x60);
 
 	// Setup ramx pool and interrupt_queue
 	ramx_pool_init();
@@ -110,6 +111,7 @@ int main()
 	usb_device_0.endpoints.rx_callback[5] = usb_emulation_endp5_rx_callback;
 	usb_device_0.endpoints.rx_callback[6] = usb_emulation_endp6_rx_callback;
 	usb_device_0.endpoints.rx_callback[7] = usb_emulation_endp7_rx_callback;
+	usb_device_0.endpoints.nak_callback = usb_emulation_nak_callback;
 
 	usb2_user_handled.usb2_device_handle_bus_reset = usb_emulation_usb2_device_handle_bus_reset;
 
@@ -141,10 +143,15 @@ int main()
 	WWDG_ITCfg(ENABLE);
 
 	// Infinite loop USB2/USB3 managed with Interrupt
+
 	while (1)
 	{
 		WWDG_SetCounter(0); // rearm the watchdog
 		hydra_interrupt_queue_run();
+
+		if (start_polling)
+			hydradancer_send_event();
+
 		if (bsp_ubtn())
 		{
 			LOG_DUMP();

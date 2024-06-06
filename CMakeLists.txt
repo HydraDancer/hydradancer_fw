@@ -9,4 +9,6 @@ add_subdirectory(submodules/wch-ch56x-lib)
 
 add_subdirectory(hydradancer)
 
-
+if (DEFINED BUILD_LEGACY)
+add_subdirectory(legacy)
+endif()
