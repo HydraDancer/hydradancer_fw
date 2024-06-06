@@ -102,14 +102,16 @@ Previous results for Hydradancer used priming, which made it faster. The new ver
 
 There are two configurations for Hydradancer:
 
-* the dual-HydraUSB3 : you will need the firmware compiled from `hydradancer/firmware_control_board` and `hydradancer/firmware_emulation_board`.
 * the Hydradancer dongle : only the firmware from `hydradancer/firmware_hydradancer` is needed.
+* (unmaintained) the dual-HydraUSB3 : you will need the firmware compiled from `hydradancer/firmware_control_board` and `hydradancer/firmware_emulation_board`.
 
 To build and flash the firmware, see [the build tutorial](BUILD.md). If you don't want to build the firmwares yourself, you can skip the building part by using the [latest release](https://github.com/HydraDancer/hydradancer_fw/releases/latest).
 
 # ... and finally, using Facedancer with Hydradancer !
 
 First, clone Facedancer. While we hope to merge the Hydradancer backend for Facedancer into the [main repository](https://github.com/greatscottgadgets/Facedancer) along with some bug fixes we may have found, the Hydradancer backend is currently in our fork.
+
+For the unmaintained dual-HydraUSB3 firmware, you will need v1.0.0 of our Facedancer fork.
 
 ```shell
 git clone https://github.com/HydraDancer/Facedancer

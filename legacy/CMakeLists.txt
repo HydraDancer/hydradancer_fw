@@ -1,0 +1,2 @@
+add_subdirectory(firmware_control_board)
+add_subdirectory(firmware_emulation_board)
