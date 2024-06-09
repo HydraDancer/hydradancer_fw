@@ -87,45 +87,24 @@ bool _usb_emulation_endp0_passthrough_setup_callback(uint8_t* data)
 	uint8_t* ptr = ((ep_queue_member_t*)data)->ptr;
 	uint16_t size = ((ep_queue_member_t*)data)->size;
 
-	// we need to wait here, because we can't NAK a packet with PID setup
-	// the only accepted answer is ACK, so we have to store it and wait for Facedancer to be ready
-	uint64_t start = bsp_get_SysTickCNT();
-	uint64_t curr = 0;
-	uint64_t delta = 0;
-
-	while (hydradancer_status.ep_out_status & (0x01 << 0) && delta < MAX_BUSY_WAIT_CYCLES)
+	while (hydradancer_status.ep_out_status & (0x01 << 0))
 	{
 		if (start_polling)
 			hydradancer_send_event();
 		WWDG_SetCounter(0); // rearm the watchdog
-		curr = bsp_get_SysTickCNT();
-		delta = start - curr; // SysTickCNT is decremented so comparison is inverted
 	}
 
 	hydradancer_status_set_out(0);
 	endp_tx_set_new_buffer(&usb_device_1, endpoint_mapping[0], ptr, size);
 	write_event(EVENT_OUT_BUFFER_AVAILABLE, 0);
 
-	// wait for the packet to be transmitted or count to reach MAX_COUNT
-	// we still miss some interrupts, count attemps to mitigate this issue by considering
-	// the packet has been sent after some time
-	start = bsp_get_SysTickCNT();
-	curr = 0;
-	delta = 0;
-	while (hydradancer_status.ep_out_status & (0x01 << 0) && delta < MAX_BUSY_WAIT_CYCLES)
+	while (hydradancer_status.ep_out_status & (0x01 << 0))
 	{
 		if (start_polling)
 			hydradancer_send_event();
 		WWDG_SetCounter(0); // rearm the watchdog
-		curr = bsp_get_SysTickCNT();
-		delta = start - curr; // SysTickCNT is decremented so comparison is inverted
 	}
 
-	if (delta >= MAX_BUSY_WAIT_CYCLES)
-	{
-		LOG_IF_LEVEL(LOG_LEVEL_CRITICAL, "_usb_emulation_endp0_passthrough_setup_callback RECOVERY\r\n");
-		hydradancer_recover_out_interrupt(0);
-	}
 	return true;
 }
 
@@ -159,24 +138,13 @@ static bool _usb_emulation_endp_rx_callback(uint8_t* data)
 	endp_tx_set_new_buffer(&usb_device_1, endpoint_mapping[ep_queue_member->ep_num], ep_queue_member->ptr, ep_queue_member->size);
 	write_event(EVENT_OUT_BUFFER_AVAILABLE, ep_queue_member->ep_num);
 
-	uint64_t start = bsp_get_SysTickCNT();
-	uint64_t curr = 0;
-	uint64_t delta = 0;
-
-	while (hydradancer_status.ep_out_status & (0x01 << ep_queue_member->ep_num) && delta < MAX_BUSY_WAIT_CYCLES)
+	while (hydradancer_status.ep_out_status & (0x01 << ep_queue_member->ep_num))
 	{
 		if (start_polling)
 			hydradancer_send_event();
 		WWDG_SetCounter(0); // rearm the watchdog
-		curr = bsp_get_SysTickCNT();
-		delta = start - curr; // SysTickCNT is decremented so comparison is inverted
 	}
 
-	if (delta >= MAX_BUSY_WAIT_CYCLES)
-	{
-		LOG_IF_LEVEL(LOG_LEVEL_CRITICAL, "_usb_emulation_endp_rx_callback RECOVERY\r\n");
-		hydradancer_recover_out_interrupt(ep_queue_member->ep_num);
-	}
 	return true;
 }
 
@@ -220,24 +188,13 @@ bool _usb_emulation_endp0_rx_callback(uint8_t* data)
 	endp_tx_set_new_buffer(&usb_device_1, endpoint_mapping[0], ptr, size);
 	write_event(EVENT_OUT_BUFFER_AVAILABLE, 0);
 
-	uint64_t start = bsp_get_SysTickCNT();
-	uint64_t curr = 0;
-	uint64_t delta = 0;
-
-	while (hydradancer_status.ep_out_status & (0x01 << 0) && delta < MAX_BUSY_WAIT_CYCLES)
+	while (hydradancer_status.ep_out_status & (0x01 << 0))
 	{
 		if (start_polling)
 			hydradancer_send_event();
 		WWDG_SetCounter(0); // rearm the watchdog
-		curr = bsp_get_SysTickCNT();
-		delta = start - curr; // SysTickCNT is decremented so comparison is inverted
 	}
 
-	if (delta >= MAX_BUSY_WAIT_CYCLES)
-	{
-		LOG_IF_LEVEL(LOG_LEVEL_CRITICAL, "_usb_emulation_endp0_rx_callback RECOVERY\r\n");
-		hydradancer_recover_out_interrupt(0);
-	}
 	return true;
 }
 
