@@ -9,7 +9,6 @@ __attribute__((aligned(16))) volatile uint8_t boards_ready __attribute__((sectio
 __attribute__((aligned(16))) volatile bool event_transfer_finished = true;
 __attribute__((aligned(16))) volatile bool start_polling = false;
 __attribute__((aligned(16))) volatile hydradancer_event_t _events_buffer[EVENT_QUEUE_SIZE] __attribute__((section(".DMADATA")));
-uint64_t MAX_BUSY_WAIT_CYCLES = 1234567899; //set to a lower value in main, after bsp_init
 
 HYDRA_POOL_DEF(ep_queue, ep_queue_member_t, 100);
 

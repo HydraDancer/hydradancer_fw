@@ -51,9 +51,6 @@
 #define BLINK_USB3 (250) // Blink LED each 500ms (250*2)
 #define BLINK_USB2 (1000) // Blink LED each 2000ms (1000*2)
 
-#define MAX_BUSY_WAIT_CYCLES_MS 5
-extern uint64_t MAX_BUSY_WAIT_CYCLES;
-
 typedef struct __attribute__((packed))
 {
 	uint8_t ep_in_status;
