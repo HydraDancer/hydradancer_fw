@@ -40,7 +40,7 @@ Put the Hydradancer dongle in firmware download mode. For that, you need the fol
 * reset : button with "RST" next to it
 * flash mode : button with "Flash Mode" next to it
 
-You need to hold the flash mode button, press reset and then release the flash mode button.
+You need to hold the flash mode button, press reset (wait 1s then release reset) and then release the flash mode button.
 ```
 
 Then, launch `wch-ch56x-isp`
