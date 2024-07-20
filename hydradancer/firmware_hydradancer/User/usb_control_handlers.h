@@ -19,21 +19,24 @@
 #include "wch-ch56x-lib/USBDevice/usb20.h"
 #include "wch-ch56x-lib/USBDevice/usb2_utils.h"
 #include "wch-ch56x-lib/USBDevice/usb30.h"
+#include "wch-ch56x-lib/USBDevice/usb30_utils.h"
 #include "wch-ch56x-lib/USBDevice/usb_descriptors.h"
 #include "wch-ch56x-lib/USBDevice/usb_endpoints.h"
 #include "wch-ch56x-lib/USBDevice/usb_types.h"
 
-void usb_control_endp1_tx_complete(TRANSACTION_STATUS status);
-void usb_control_endp1_tx_complete(TRANSACTION_STATUS status)
+__attribute__((always_inline)) static inline void usb_control_endp1_tx_complete(TRANSACTION_STATUS status)
 {
 	event_transfer_finished = true;
 }
 
 __attribute__((always_inline)) static inline void usb_control_endp_tx_complete(TRANSACTION_STATUS status, uint8_t endp_num)
 {
-	ramx_pool_free(usb_device_1.endpoints.tx[endp_num].buffer);
-	hydradancer_status_clear_out(endpoint_mapping_reverse[endp_num]);
-	endp_rx_set_state(&usb_device_0, endpoint_mapping_reverse[endp_num], ENDP_STATE_ACK);
+	if (hydradancer_status.ep_out_status & (0x01 << endpoint_mapping_reverse[endp_num]))
+	{
+		ramx_pool_free(usb_device_1.endpoints.tx[endp_num].buffer);
+		hydradancer_status_clear_out(endpoint_mapping_reverse[endp_num]);
+		endp_rx_set_state(&usb_device_0, endpoint_mapping_reverse[endp_num], ENDP_STATE_ACK);
+	}
 }
 
 void usb_control_endp2_tx_complete(TRANSACTION_STATUS status);
@@ -84,7 +87,16 @@ static bool _usb_control_endp_rx_callback(uint8_t* data);
 static bool _usb_control_endp_rx_callback(uint8_t* data)
 {
 	ep_queue_member_t* ep_queue_member = (ep_queue_member_t*)data;
+	while (true)
+	{
+		bsp_disable_interrupt();
+		volatile uint16_t status = hydradancer_status.ep_in_status;
+		bsp_enable_interrupt();
+		if (status & (0x01 << endpoint_mapping_reverse[ep_queue_member->ep_num]))
+			break;
+	}
 	endp_tx_set_new_buffer(&usb_device_0, endpoint_mapping_reverse[ep_queue_member->ep_num], ep_queue_member->ptr, ep_queue_member->size);
+	hydradancer_status_set_in(endpoint_mapping_reverse[ep_queue_member->ep_num]);
 	return true;
 }
 
@@ -112,7 +124,6 @@ __attribute__((always_inline)) static inline uint8_t usb_control_endp_rx_callbac
 	ep_queue_member->size = size;
 	hydra_interrupt_queue_set_next_task(_usb_control_endp_rx_callback, (uint8_t*)ep_queue_member, _ep_queue_cleanup);
 	usb_device_1.endpoints.rx[ep_queue_member->ep_num].buffer = buffer;
-	hydradancer_status.ep_in_status &= ~(0x01 << endpoint_mapping_reverse[ep_queue_member->ep_num]);
 	return ENDP_STATE_ACK;
 }
 
@@ -194,12 +205,18 @@ uint16_t usb_control_endp0_user_handled_control_request(USB_SETUP* request, uint
 	}
 	else if (request->bRequest == SET_ENDPOINT_MAPPING)
 	{
-		LOG_IF(LOG_LEVEL_DEBUG, LOG_ID_USER, "SET_ENDPOINT_MAPPING target_ep %d pc_ep %d \r\n", request->wValue.bw.bb1, request->wValue.bw.bb0);
+		LOG("SET_ENDPOINT_MAPPING target_ep %d pc_ep %d \r\n", request->wValue.bw.bb1, request->wValue.bw.bb0);
 		endpoint_mapping[request->wValue.bw.bb1] = request->wValue.bw.bb0;
 		endpoint_mapping_reverse[request->wValue.bw.bb0] = request->wValue.bw.bb1;
 		hydradancer_status.ep_in_status |= (0x01 << request->wValue.bw.bb1);
 		hydradancer_status.ep_out_status &= ~(0x01 << request->wValue.bw.bb1);
 		usb_device_0.endpoints.rx[request->wValue.bw.bb1].max_packet_size = usb_device_0.speed == USB2_HIGHSPEED ? 512 : 64;
+		if (request->wValue.bw.bb1 > 0)
+		{
+			uint32_t new_eps = ((1U << ((request->wValue.bw.bb1 - 1) * 2)) | (1U << (((request->wValue.bw.bb1 - 1) * 2 + 1))));
+			usb_device_0.endpoint_mask |= new_eps;
+			usb2_setup_endpoints_in_mask(new_eps);
+		}
 		hydradancer_event_t event = {
 			.type = EVENT_IN_BUFFER_AVAILABLE,
 			.value = request->wValue.bw.bb1,

@@ -22,8 +22,10 @@
 #include "wch-ch56x-lib/USBDevice/usb20.h"
 #include "wch-ch56x-lib/USBDevice/usb2_utils.h"
 #include "wch-ch56x-lib/USBDevice/usb30.h"
+#include "wch-ch56x-lib/USBDevice/usb30_utils.h"
 #include "wch-ch56x-lib/USBDevice/usb_descriptors.h"
 #include "wch-ch56x-lib/USBDevice/usb_endpoints.h"
+#include "wch-ch56x-lib/USBDevice/usb_types.h"
 
 __attribute__((always_inline)) static inline void usb_emulation_endp_tx_complete(TRANSACTION_STATUS status, uint8_t endp_num)
 {
@@ -81,28 +83,84 @@ void usb_emulation_endp7_tx_complete(TRANSACTION_STATUS status)
 	usb_emulation_endp_tx_complete(status, 7);
 }
 
+void usb_emulation_endp8_tx_complete(TRANSACTION_STATUS status);
+void usb_emulation_endp8_tx_complete(TRANSACTION_STATUS status)
+{
+	usb_emulation_endp_tx_complete(status, 8);
+}
+
+void usb_emulation_endp9_tx_complete(TRANSACTION_STATUS status);
+void usb_emulation_endp9_tx_complete(TRANSACTION_STATUS status)
+{
+	usb_emulation_endp_tx_complete(status, 9);
+}
+
+void usb_emulation_endp10_tx_complete(TRANSACTION_STATUS status);
+void usb_emulation_endp10_tx_complete(TRANSACTION_STATUS status)
+{
+	usb_emulation_endp_tx_complete(status, 10);
+}
+
+void usb_emulation_endp11_tx_complete(TRANSACTION_STATUS status);
+void usb_emulation_endp11_tx_complete(TRANSACTION_STATUS status)
+{
+	usb_emulation_endp_tx_complete(status, 11);
+}
+
+void usb_emulation_endp12_tx_complete(TRANSACTION_STATUS status);
+void usb_emulation_endp12_tx_complete(TRANSACTION_STATUS status)
+{
+	usb_emulation_endp_tx_complete(status, 12);
+}
+
+void usb_emulation_endp13_tx_complete(TRANSACTION_STATUS status);
+void usb_emulation_endp13_tx_complete(TRANSACTION_STATUS status)
+{
+	usb_emulation_endp_tx_complete(status, 13);
+}
+
+void usb_emulation_endp14_tx_complete(TRANSACTION_STATUS status);
+void usb_emulation_endp14_tx_complete(TRANSACTION_STATUS status)
+{
+	usb_emulation_endp_tx_complete(status, 14);
+}
+
+void usb_emulation_endp15_tx_complete(TRANSACTION_STATUS status);
+void usb_emulation_endp15_tx_complete(TRANSACTION_STATUS status)
+{
+	usb_emulation_endp_tx_complete(status, 15);
+}
+
 bool _usb_emulation_endp0_passthrough_setup_callback(uint8_t* data);
 bool _usb_emulation_endp0_passthrough_setup_callback(uint8_t* data)
 {
 	uint8_t* ptr = ((ep_queue_member_t*)data)->ptr;
 	uint16_t size = ((ep_queue_member_t*)data)->size;
 
-	while (hydradancer_status.ep_out_status & (0x01 << 0))
+	while (true)
 	{
+		bsp_disable_interrupt();
+		volatile uint16_t status = hydradancer_status.ep_out_status;
+		bsp_enable_interrupt();
+		if (!(status & (0x01 << 0)))
+			break;
 		if (start_polling)
 			hydradancer_send_event();
-		WWDG_SetCounter(0); // rearm the watchdog
 	}
 
 	hydradancer_status_set_out(0);
 	endp_tx_set_new_buffer(&usb_device_1, endpoint_mapping[0], ptr, size);
 	write_event(EVENT_OUT_BUFFER_AVAILABLE, 0);
 
-	while (hydradancer_status.ep_out_status & (0x01 << 0))
+	while (true)
 	{
+		bsp_disable_interrupt();
+		volatile uint16_t status = hydradancer_status.ep_out_status;
+		bsp_enable_interrupt();
+		if (!(status & (0x01 << 0)))
+			break;
 		if (start_polling)
 			hydradancer_send_event();
-		WWDG_SetCounter(0); // rearm the watchdog
 	}
 
 	return true;
@@ -112,19 +170,8 @@ uint8_t usb_emulation_endp0_passthrough_setup_callback(uint8_t* ptr, uint16_t si
 uint8_t usb_emulation_endp0_passthrough_setup_callback(uint8_t* ptr, uint16_t size)
 {
 	uint8_t* buffer = ramx_pool_alloc_bytes(ENDP_1_15_MAX_PACKET_SIZE);
-	if (buffer == NULL)
-	{
-		LOG_IF_LEVEL(LOG_LEVEL_CRITICAL, "usb_emulation_endp0_passthrough_setup_callback Could not allocate pool buf\r\n");
-		return ENDP_STATE_NAK;
-	}
-	ep_queue_member_t* ep_queue_member = hydra_pool_get(&ep_queue);
-	if (ep_queue_member == NULL)
-	{
-		ramx_pool_free(buffer);
-		LOG_IF_LEVEL(LOG_LEVEL_CRITICAL, "usb_emulation_endp0_passthrough_setup_callback could not allocate ep_queue_member");
-		return ENDP_STATE_NAK;
-	}
 	memcpy(buffer, ptr, size);
+	ep_queue_member_t* ep_queue_member = hydra_pool_get(&ep_queue);
 	ep_queue_member->ptr = buffer;
 	ep_queue_member->size = size;
 	hydra_interrupt_queue_set_next_task(_usb_emulation_endp0_passthrough_setup_callback, (uint8_t*)ep_queue_member, _ep_queue_cleanup);
@@ -133,97 +180,59 @@ uint8_t usb_emulation_endp0_passthrough_setup_callback(uint8_t* ptr, uint16_t si
 
 static bool _usb_emulation_endp_rx_callback(uint8_t* data)
 {
-	ep_queue_member_t* ep_queue_member = (ep_queue_member_t*)data;
-	hydradancer_status_set_out(ep_queue_member->ep_num);
-	endp_tx_set_new_buffer(&usb_device_1, endpoint_mapping[ep_queue_member->ep_num], ep_queue_member->ptr, ep_queue_member->size);
-	write_event(EVENT_OUT_BUFFER_AVAILABLE, ep_queue_member->ep_num);
+	uint8_t endp_num = ((ep_queue_member_t*)data)->ep_num;
+	uint8_t* ptr = ((ep_queue_member_t*)data)->ptr;
+	uint16_t size = ((ep_queue_member_t*)data)->size;
 
-	while (hydradancer_status.ep_out_status & (0x01 << ep_queue_member->ep_num))
+	hydradancer_status_set_out(endp_num);
+	endp_tx_set_new_buffer(&usb_device_1, endpoint_mapping[endp_num], ptr, size);
+	write_event(EVENT_OUT_BUFFER_AVAILABLE, endp_num);
+
+	while (true)
 	{
+		bsp_disable_interrupt();
+		volatile uint16_t status = hydradancer_status.ep_out_status;
+		bsp_enable_interrupt();
+		if (!(status & (0x01 << endp_num)))
+		{
+			break;
+		}
+
 		if (start_polling)
 			hydradancer_send_event();
-		WWDG_SetCounter(0); // rearm the watchdog
 	}
-
 	return true;
 }
 
 __attribute__((always_inline)) static inline uint8_t usb_emulation_endp_rx_callback(uint8_t* const ptr, uint16_t size, uint8_t endp_num)
 {
-	if (hydradancer_status.ep_out_status & (0x01 << endp_num))
-	{
-		return ENDP_STATE_NAK;
-	}
-
 	uint8_t* buffer = ramx_pool_alloc_bytes(ENDP_1_15_MAX_PACKET_SIZE);
-	if (buffer == NULL)
+
+	if (endp_num == 0)
 	{
-		LOG_IF_LEVEL(LOG_LEVEL_CRITICAL, "usb_emulation_endp_rx_callback could not allocate buffer\r\n");
-		return ENDP_STATE_NAK;
+		memcpy(buffer, ptr, size);
+	}
+	else
+	{
+		usb_device_0.endpoints.rx[endp_num].buffer = buffer;
 	}
 	ep_queue_member_t* ep_queue_member = hydra_pool_get(&ep_queue);
-	if (ep_queue_member == NULL)
-	{
-		ramx_pool_free(buffer);
-		LOG_IF_LEVEL(LOG_LEVEL_CRITICAL, "usb_emulation_endp_rx_callback could not allocate ep queue member\r\n");
-		return ENDP_STATE_NAK;
-	}
-
 	ep_queue_member->ep_num = endp_num;
-	ep_queue_member->ptr = ptr;
+	ep_queue_member->ptr = endp_num == 0 ? buffer : ptr;
 	ep_queue_member->size = size;
 	hydra_interrupt_queue_set_next_task(_usb_emulation_endp_rx_callback, (uint8_t*)ep_queue_member, _ep_queue_cleanup);
-	usb_device_0.endpoints.rx[endp_num].buffer = buffer;
 	return ENDP_STATE_NAK;
 }
 
-bool _usb_emulation_endp0_rx_callback(uint8_t* data);
-bool _usb_emulation_endp0_rx_callback(uint8_t* data)
+void usb2_out_nak(uint8_t endp);
+void usb2_out_nak(uint8_t endp)
 {
-	hydradancer_status_set_out(0);
-
-	uint8_t* ptr = ((ep_queue_member_t*)data)->ptr;
-	uint16_t size = ((ep_queue_member_t*)data)->size;
-
-	endp_tx_set_new_buffer(&usb_device_1, endpoint_mapping[0], ptr, size);
-	write_event(EVENT_OUT_BUFFER_AVAILABLE, 0);
-
-	while (hydradancer_status.ep_out_status & (0x01 << 0))
-	{
-		if (start_polling)
-			hydradancer_send_event();
-		WWDG_SetCounter(0); // rearm the watchdog
-	}
-
-	return true;
 }
 
 uint8_t usb_emulation_endp0_rx_callback(uint8_t* const ptr, uint16_t size);
 uint8_t usb_emulation_endp0_rx_callback(uint8_t* const ptr, uint16_t size)
 {
-	if (hydradancer_status.ep_out_status & (0x01 << 0))
-	{
-		return ENDP_STATE_NAK;
-	}
-
-	uint8_t* buffer = ramx_pool_alloc_bytes(ENDP_1_15_MAX_PACKET_SIZE);
-	if (buffer == NULL)
-	{
-		LOG_IF_LEVEL(LOG_LEVEL_CRITICAL, "usb_emulation_endp0_passthrough_setup_callback Could not allocate pool buf\r\n");
-		return ENDP_STATE_NAK;
-	}
-	ep_queue_member_t* ep_queue_member = hydra_pool_get(&ep_queue);
-	if (ep_queue_member == NULL)
-	{
-		ramx_pool_free(buffer);
-		LOG_IF_LEVEL(LOG_LEVEL_CRITICAL, "usb_emulation_endp0_passthrough_setup_callback could not allocate ep_queue_member");
-		return ENDP_STATE_NAK;
-	}
-	memcpy(buffer, ptr, size);
-	ep_queue_member->ptr = buffer;
-	ep_queue_member->size = size;
-	hydra_interrupt_queue_set_next_task(_usb_emulation_endp0_rx_callback, (uint8_t*)ep_queue_member, _ep_queue_cleanup);
-	return ENDP_STATE_NAK;
+	return usb_emulation_endp_rx_callback(ptr, size, 0);
 }
 
 uint8_t usb_emulation_endp1_rx_callback(uint8_t* const ptr, uint16_t size);
@@ -265,6 +274,54 @@ uint8_t usb_emulation_endp7_rx_callback(uint8_t* const ptr, uint16_t size)
 	return usb_emulation_endp_rx_callback(ptr, size, 7);
 }
 
+uint8_t usb_emulation_endp8_rx_callback(uint8_t* const ptr, uint16_t size);
+uint8_t usb_emulation_endp8_rx_callback(uint8_t* const ptr, uint16_t size)
+{
+	return usb_emulation_endp_rx_callback(ptr, size, 8);
+}
+
+uint8_t usb_emulation_endp9_rx_callback(uint8_t* const ptr, uint16_t size);
+uint8_t usb_emulation_endp9_rx_callback(uint8_t* const ptr, uint16_t size)
+{
+	return usb_emulation_endp_rx_callback(ptr, size, 9);
+}
+
+uint8_t usb_emulation_endp10_rx_callback(uint8_t* const ptr, uint16_t size);
+uint8_t usb_emulation_endp10_rx_callback(uint8_t* const ptr, uint16_t size)
+{
+	return usb_emulation_endp_rx_callback(ptr, size, 10);
+}
+
+uint8_t usb_emulation_endp11_rx_callback(uint8_t* const ptr, uint16_t size);
+uint8_t usb_emulation_endp11_rx_callback(uint8_t* const ptr, uint16_t size)
+{
+	return usb_emulation_endp_rx_callback(ptr, size, 11);
+}
+
+uint8_t usb_emulation_endp12_rx_callback(uint8_t* const ptr, uint16_t size);
+uint8_t usb_emulation_endp12_rx_callback(uint8_t* const ptr, uint16_t size)
+{
+	return usb_emulation_endp_rx_callback(ptr, size, 12);
+}
+
+uint8_t usb_emulation_endp13_rx_callback(uint8_t* const ptr, uint16_t size);
+uint8_t usb_emulation_endp13_rx_callback(uint8_t* const ptr, uint16_t size)
+{
+	return usb_emulation_endp_rx_callback(ptr, size, 13);
+}
+
+uint8_t usb_emulation_endp14_rx_callback(uint8_t* const ptr, uint16_t size);
+uint8_t usb_emulation_endp14_rx_callback(uint8_t* const ptr, uint16_t size)
+{
+	return usb_emulation_endp_rx_callback(ptr, size, 14);
+}
+
+uint8_t usb_emulation_endp15_rx_callback(uint8_t* const ptr, uint16_t size);
+uint8_t usb_emulation_endp15_rx_callback(uint8_t* const ptr, uint16_t size)
+{
+	return usb_emulation_endp_rx_callback(ptr, size, 15);
+}
+
 void usb_emulation_nak_callback(uint8_t endp_num);
 void usb_emulation_nak_callback(uint8_t endp_num)
 {
@@ -292,7 +349,6 @@ void usb_emulation_usb2_device_handle_bus_reset(void)
 
 	// Set the USB device parameters
 	usb2_ep0_passthrough_enabled(true);
-	usb_device_set_endpoint_mask(&usb_device_0, ENDPOINT_1_RX | ENDPOINT_1_TX | ENDPOINT_2_RX | ENDPOINT_2_TX | ENDPOINT_3_RX | ENDPOINT_3_TX | ENDPOINT_4_RX | ENDPOINT_4_TX | ENDPOINT_5_RX | ENDPOINT_5_TX | ENDPOINT_6_RX | ENDPOINT_6_TX | ENDPOINT_7_RX | ENDPOINT_7_TX);
 
 	for (int i = 0; i < MAX_ENDPOINTS_SUPPORTED; ++i)
 	{

@@ -61,15 +61,15 @@ if __name__ == "__main__":
     ep_in = usb.util.find_descriptor(
         intf,
         # match the first OUT endpoint
-        custom_match=lambda e: \
-        usb.util.endpoint_direction(e.bEndpointAddress) == \
+        custom_match=lambda e:
+        usb.util.endpoint_direction(e.bEndpointAddress) ==
         usb.util.ENDPOINT_IN)
 
     ep_out = usb.util.find_descriptor(
         intf,
         # match the first OUT endpoint
-        custom_match=lambda e: \
-        usb.util.endpoint_direction(e.bEndpointAddress) == \
+        custom_match=lambda e:
+        usb.util.endpoint_direction(e.bEndpointAddress) ==
         usb.util.ENDPOINT_OUT)
 
     assert ep_in is not None

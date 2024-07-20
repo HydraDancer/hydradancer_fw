@@ -51,8 +51,8 @@ if __name__ == "__main__":
         intf,
         find_all=True,
         # match the first OUT endpoint
-        custom_match=lambda e: \
-        usb.util.endpoint_direction(e.bEndpointAddress) == \
+        custom_match=lambda e:
+        usb.util.endpoint_direction(e.bEndpointAddress) ==
         usb.util.ENDPOINT_IN))
 
     assert ep_in is not None

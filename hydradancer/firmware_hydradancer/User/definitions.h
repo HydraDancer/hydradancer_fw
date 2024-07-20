@@ -16,11 +16,6 @@
 #include "wch-ch56x-lib/USBDevice/usb_device.h"
 #include "wch-ch56x-lib/USBDevice/usb_endpoints.h"
 
-#define CUSTOM_REGISTER_ENDPOINT_MASK 0x000f
-#define CUSTOM_REGISTER_REQUEST_CODE_BIT_MASK 0x0010
-#define CUSTOM_REGISTER_REQUEST_CODE_MASK 0x01e0
-#define CUSTOM_REGISTER_REQUEST_CODE_OFFSET 0x5
-
 #define USB2_LS 0x00
 #define USB2_FS 0x01
 #define USB2_HS 0x02
@@ -53,10 +48,10 @@
 
 typedef struct __attribute__((packed))
 {
-	uint8_t ep_in_status;
-	uint8_t ep_out_status;
-	uint8_t ep_in_nak;
-	uint8_t other_events;
+	uint16_t ep_in_status;
+	uint16_t ep_out_status;
+	uint16_t ep_in_nak;
+	uint16_t other_events;
 } hydradancer_status_t;
 
 typedef struct __attribute__((packed))
@@ -65,7 +60,7 @@ typedef struct __attribute__((packed))
 	uint8_t value;
 } hydradancer_event_t;
 
-#define MAX_ENDPOINTS_SUPPORTED 8 //including EP0
+#define MAX_ENDPOINTS_SUPPORTED 16 //including EP0
 extern uint8_t endpoint_mapping_reverse[MAX_ENDPOINTS_SUPPORTED]; //endpoint_mapping_reverse[PC_Endpoint] = Target_Endpoint
 extern uint8_t endpoint_mapping[MAX_ENDPOINTS_SUPPORTED]; //endpoint_mapping[Target_Endpoint] = PC_Endpoint
 extern __attribute__((aligned(16))) volatile hydradancer_status_t hydradancer_status __attribute__((section(".DMADATA")));
@@ -147,11 +142,14 @@ __attribute__((always_inline)) inline static void hydradancer_status_clear_nak(u
 
 __attribute__((always_inline)) inline static void hydradancer_recover_out_interrupt(uint8_t endp_num)
 {
-	ramx_pool_free(usb_device_1.endpoints.tx[endpoint_mapping[endp_num]].buffer);
-	hydradancer_status_clear_out(endp_num);
-	bsp_disable_interrupt();
-	endp_rx_set_state(&usb_device_0, endp_num, ENDP_STATE_ACK);
-	bsp_enable_interrupt();
+	if (hydradancer_status.ep_out_status & (0x01 << endpoint_mapping_reverse[endp_num]))
+	{
+		ramx_pool_free(usb_device_1.endpoints.tx[endpoint_mapping[endp_num]].buffer);
+		hydradancer_status_clear_out(endp_num);
+		bsp_disable_interrupt();
+		endp_rx_set_state(&usb_device_0, endp_num, ENDP_STATE_ACK);
+		bsp_enable_interrupt();
+	}
 }
 
 #endif

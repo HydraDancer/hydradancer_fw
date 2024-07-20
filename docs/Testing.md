@@ -41,7 +41,7 @@ Different firmwares have been created, along with Python scripts to execute the 
 
 Below are the different test cases and how to test them:
 
-### Backend speedtest
+### (unmaintained) Backend speedtest
 
 * Compile :
   * compile `test_backend/firmware_emulation_board` and `HydraDancer/hydradancer/firmware_control_board` with `make`
