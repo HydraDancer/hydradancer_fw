@@ -25,6 +25,4 @@ void usb_emulation_reinit(void);
 
 void usb_emulation_init_endpoints(void);
 
-void usb_emulation_do_bus_reset(void);
-
 #endif

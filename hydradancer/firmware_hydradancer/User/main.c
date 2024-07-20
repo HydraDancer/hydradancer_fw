@@ -102,6 +102,14 @@ int main()
 	usb_device_0.endpoints.tx_complete[5] = usb_emulation_endp5_tx_complete;
 	usb_device_0.endpoints.tx_complete[6] = usb_emulation_endp6_tx_complete;
 	usb_device_0.endpoints.tx_complete[7] = usb_emulation_endp7_tx_complete;
+	usb_device_0.endpoints.tx_complete[8] = usb_emulation_endp7_tx_complete;
+	usb_device_0.endpoints.tx_complete[9] = usb_emulation_endp7_tx_complete;
+	usb_device_0.endpoints.tx_complete[10] = usb_emulation_endp7_tx_complete;
+	usb_device_0.endpoints.tx_complete[11] = usb_emulation_endp7_tx_complete;
+	usb_device_0.endpoints.tx_complete[12] = usb_emulation_endp7_tx_complete;
+	usb_device_0.endpoints.tx_complete[13] = usb_emulation_endp7_tx_complete;
+	usb_device_0.endpoints.tx_complete[14] = usb_emulation_endp7_tx_complete;
+	usb_device_0.endpoints.tx_complete[15] = usb_emulation_endp7_tx_complete;
 	usb_device_0.endpoints.rx_callback[0] = usb_emulation_endp0_rx_callback;
 	usb_device_0.endpoints.rx_callback[1] = usb_emulation_endp1_rx_callback;
 	usb_device_0.endpoints.rx_callback[2] = usb_emulation_endp2_rx_callback;
@@ -110,6 +118,14 @@ int main()
 	usb_device_0.endpoints.rx_callback[5] = usb_emulation_endp5_rx_callback;
 	usb_device_0.endpoints.rx_callback[6] = usb_emulation_endp6_rx_callback;
 	usb_device_0.endpoints.rx_callback[7] = usb_emulation_endp7_rx_callback;
+	usb_device_0.endpoints.rx_callback[8] = usb_emulation_endp7_rx_callback;
+	usb_device_0.endpoints.rx_callback[9] = usb_emulation_endp7_rx_callback;
+	usb_device_0.endpoints.rx_callback[10] = usb_emulation_endp7_rx_callback;
+	usb_device_0.endpoints.rx_callback[11] = usb_emulation_endp7_rx_callback;
+	usb_device_0.endpoints.rx_callback[12] = usb_emulation_endp7_rx_callback;
+	usb_device_0.endpoints.rx_callback[13] = usb_emulation_endp7_rx_callback;
+	usb_device_0.endpoints.rx_callback[14] = usb_emulation_endp7_rx_callback;
+	usb_device_0.endpoints.rx_callback[15] = usb_emulation_endp7_rx_callback;
 	usb_device_0.endpoints.nak_callback = usb_emulation_nak_callback;
 
 	usb2_user_handled.usb2_device_handle_bus_reset = usb_emulation_usb2_device_handle_bus_reset;
@@ -124,7 +140,6 @@ int main()
 	usb_device_set_string_descriptors(&usb_device_0, NULL);
 	// Set the USB device parameters
 	usb2_ep0_passthrough_enabled(true);
-	usb_device_set_endpoint_mask(&usb_device_0, ENDPOINT_1_RX | ENDPOINT_1_TX | ENDPOINT_2_RX | ENDPOINT_2_TX | ENDPOINT_3_RX | ENDPOINT_3_TX | ENDPOINT_4_RX | ENDPOINT_4_TX | ENDPOINT_5_RX | ENDPOINT_5_TX | ENDPOINT_6_RX | ENDPOINT_6_TX | ENDPOINT_7_RX | ENDPOINT_7_TX);
 	usb_emulation_init_endpoints();
 
 	//=================== Finished initializing Emulation device =====================//
