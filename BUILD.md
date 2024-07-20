@@ -90,9 +90,11 @@ Currently, you need two HydraUSB3 boards connected together via HSPI. You just n
 To be able to access the HydraDancer boards and flash them, root privileges may be required, or you can provide them to your regular user, e.g. with the creation of a file `/etc/udev/rules.d/99-hydrausb3.rules` with
 
 ```
-# UDEV Rules for HydraUSB3 boards, https://github.com/hydrausb3
+# UDEV Rules for HydraUSB3 boards https://github.com/hydrausb3, Hydradancer https://github.com/HydraDancer/hydradancer_fw and Facedancer https://github.com/greatscottgadgets/Facedancer
 # WinChipHead CH569W Bootloader
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="4348", ATTRS{idProduct}=="55e0", MODE="0664", GROUP="plugdev"
+# Hydradancer
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="27d8", MODE="0664", GROUP="plugdev"
 ```
 
 and having your user as member of the group `plugdev`.

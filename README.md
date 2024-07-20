@@ -2,15 +2,120 @@
 
 Hydradancer provides a faster, USB2 High-Speed capable backend for Facedancer by taking advantage of fast communication protocols such as USB3, SerDes and HSPI.
 
+The following examples have been confirmed working:
+* hackrf-info.py
+* imperative.py
+* mass-storage.py
+* minimal.py (with test_minimal.py)
+* rubber-ducky.py
+* template.py
+* usbproxy.py : USB Flash Drive in USB2 High-Speed
+
+**DISCLAIMER** : current results for the [highly-stressed stress test of Facedancer](https://github.com/greatscottgadgets/facedancer/blob/main/test/test_stress.py) with 20000 tries.
+
+The current Facedancer stress test results are the following. 
+* USB2 High-Speed
+  * bulk IN/ctrl IN : pass
+  * bulk OUT/ctrl OUT : fails after a few hundred/thousand tries, never reaches 20000
+* USB2 Full-Speed
+  * bulk IN/ctrl IN : fails after a few hundred/thousand tries, never reaches 20000
+  * bulk OUT/ctrl OUT : fails after a few hundred/thousand tries, never reaches 20000
+
+We are currently working on fixing those issues and we have a few culprits in mind :
+* missed interrupts : the main culprit for now, it puts Hydradancer in a blocked state.
+* differences between HS/FS : HS has PING packets which reduces the amount of data transfers for OUT transactions. Since there are no FS examples from WCH and no indications in the datasheet, we experimented to solve this issue.
+
+# Getting started (Hydradancer dongle)
+
+1. To be able to access the HydraDancer boards and flash them, root privileges may be required, or you can provide them to your regular user, e.g. with the creation of a file `/etc/udev/rules.d/99-hydradancer.rules` with
+
+```
+# UDEV Rules for HydraUSB3 boards https://github.com/hydrausb3, Hydradancer https://github.com/HydraDancer/hydradancer_fw and Facedancer https://github.com/greatscottgadgets/Facedancer
+# WinChipHead CH569W Bootloader
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="4348", ATTRS{idProduct}=="55e0", MODE="0664", GROUP="plugdev"
+# Hydradancer
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="27d8", MODE="0664", GROUP="plugdev"
+```
+
+and having your user as member of the group `plugdev`.
+
+2. Flash the firmware to your Hydradancer dongle using the [latest release](https://github.com/HydraDancer/hydradancer_fw/releases/latest) (download `all-firmwares*.zip`) with [wch-ch56-isp](https://github.com/hydrausb3/wch-ch56x-isp/releases/latest)
+
+First
+
+```
+Put the Hydradancer dongle in firmware download mode. For that, you need the following buttons : 
+* reset : button with "RST" next to it
+* flash mode : button with "Flash Mode" next to it
+
+You need to hold the flash mode button, press reset and then release the flash mode button.
+```
+
+Then, launch `wch-ch56x-isp`
+
+```shell
+wch-ch56x-isp -vf firmware_hydradancer.bin
+```
+
+3. Install Facedancer
+
+Clone our Facedancer work
+
+```shell
+https://github.com/HydraDancer/Facedancer
+```
+
+Then, reuse your virtual env or create a new one to keep your local Python installation clean
+
+```shell
+sudo apt install python3 python3-venv
+python3 -m venv venv
+```
+
+Activate the venv
+
+```shell
+source venv/bin/activate
+```
+
+Install Facedancer
+
+```shell
+cd Facedancer
+pip install --editable .
+```
+
+The `--editable` isn't necessary but it allows you to modify Facedancer's files.
+
+4. Test one of the examples
+
+Then, tell Facedancer to use the Hydradancer backend
+
+```shell
+export BACKEND=hydradancer
+```
+
+And finally, run one of the examples to check if everything works
+
+```shell
+python3 ./examples/rubber-ducky.py
+```
+
+To test the proxy mode of Facedancer, you might need to use the following line (after editing `usbproxy.py` with the target vid/pid)
+
+```shell
+sudo sh -c "env BACKEND=hydradancer ./venv/bin/python3 examples/usbproxy.py"
+```
+
 # Comparison with other Facedancer boards
 
-As shown in the table below, Hydradancer currently supports 5 endpoints other than endpoint 0 in either the IN or OUT directions, with numbers between 1-7. Hydradancer can also emulate USB2 High-speed peripherals. Host mode is currently unsupported, but could be implemented if needed.
+As shown in the table below, Hydradancer currently supports 5 endpoints other than endpoint 0 in either the IN or OUT directions, with numbers between 1-15. Hydradancer can also emulate USB2 High-speed peripherals. Host mode is currently unsupported, but could be implemented if needed.
 
 |Board|Maximum speed |Number of endpoints (not EP0) |Host mode|
 |:---:|:----:|:-:|:-:|
 Facedancer21/Raspdancer |USB2 Full-speed |EP1 OUT, EP2 IN, EP3 IN |yes|
 GreatFET One |USB2 Full-speed |3 IN / 3 OUT |yes|
-**Hydradancer** |USB2 High-speed |6 IN / 6 OUT |no|
+**Hydradancer** |USB2 High-speed |5 IN / 5 OUT |no|
 (Cynthion/LUNA)(coming early 2024) |(USB2 High-speed) |(15 IN / 15 OUT) |(yes)|
 
 <p style="text-align: center "><em>Facedancer backends functionalities</em></p>
@@ -103,67 +208,18 @@ Previous results for Hydradancer used priming, which made it faster. The new ver
 There are two configurations for Hydradancer:
 
 * the Hydradancer dongle : only the firmware from `hydradancer/firmware_hydradancer` is needed.
-* (unmaintained) the dual-HydraUSB3 : you will need the firmware compiled from `hydradancer/firmware_control_board` and `hydradancer/firmware_emulation_board`.
+* (unmaintained) the dual-HydraUSB3 : you will need the firmware compiled from `legacy/hydradancer/firmware_control_board` and `legacy/hydradancer/firmware_emulation_board`.
 
 To build and flash the firmware, see [the build tutorial](BUILD.md). If you don't want to build the firmwares yourself, you can skip the building part by using the [latest release](https://github.com/HydraDancer/hydradancer_fw/releases/latest).
-
-# ... and finally, using Facedancer with Hydradancer !
-
-First, clone Facedancer. While we hope to merge the Hydradancer backend for Facedancer into the [main repository](https://github.com/greatscottgadgets/Facedancer) along with some bug fixes we may have found, the Hydradancer backend is currently in our fork.
-
-For the unmaintained dual-HydraUSB3 firmware, you will need v1.0.0 of our Facedancer fork.
-
-```shell
-git clone https://github.com/HydraDancer/Facedancer
-```
-
-Then, reuse your virtual env or create a new one to keep your local Python installation clean
-
-```shell
-sudo apt install python3 python3-venv
-python3 -m venv venv
-```
-
-Activate the venv
-
-```shell
-source venv/bin/activate
-```
-
-Install Facedancer
-
-```shell
-cd Facedancer
-pip install --editable .
-```
-
-The `--editable` isn't necessary but it allows you to modify Facedancer's files.
-
-Then, tell Facedancer to use the Hydradancer backend
-
-```shell
-export BACKEND=hydradancer
-```
-
-And finally, run one of the examples to check if everything works, this one should make your cursor wiggle.
-
-```shell
-python3 ./examples/crazy-mouse.py
-```
-
-More information on the different peripherals that can be emulated can be found in `docs/Facedancer.md`
-
-_Note for the dual-HydraUSB3 configuration: you might need to reset both boards after flashing the firmwares (control board first, then emulation board), or if any problem arises when running the scripts._
 
 # Structure of the project
 
 ```
 hydradancer/
-|   ├─  firmware_control_board # firmware for the board connected to Facedancer, dual-HydraUSB3 configuration
-|   ├─  firmware_emulation_board # firmware for the board connected to the target USB port, dual-HydraUSB3 configuration
 |   ├─  firmware_hydradancer # firmware for the Hydradancer dongle
+|   ├─  legacy/ # old HydraUSB3 firmwares, unmaintained
 |   ├─  tests/ # test firmwares to create various USB devices
-|   |   ├─ test_backend # Test a Facedancer-like configuration, but without Facedancer. Not up-to-date.
+|   |   ├─ test_backend # Not up-to-date. Test a Facedancer-like configuration, but without Facedancer. 
 |   |   ├─ native/ # C programs using libusb to interact with the test firmwares
 |   |   ├─ scripts/ # Python scripts using pyusb to interact with the test firmwares
 tools/
