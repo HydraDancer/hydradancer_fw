@@ -13,7 +13,7 @@ The following examples have been confirmed working:
 
 **DISCLAIMER** : current results for the [highly-stressed stress test of Facedancer](https://github.com/greatscottgadgets/facedancer/blob/main/test/test_stress.py) with 20000 tries.
 
-The current Facedancer stress test results are the following. 
+The current Facedancer stress test results are the following.
 * USB2 High-Speed
   * bulk IN/ctrl IN : pass
   * bulk OUT/ctrl OUT : fails after a few hundred/thousand tries, never reaches 20000
@@ -24,6 +24,8 @@ The current Facedancer stress test results are the following.
 We are currently working on fixing those issues and we have a few culprits in mind :
 * missed interrupts : the main culprit for now, it puts Hydradancer in a blocked state.
 * differences between HS/FS : HS has PING packets which reduces the amount of data transfers for OUT transactions. Since there are no FS examples from WCH and no indications in the datasheet, we experimented to solve this issue.
+
+We implemented a [firmware](https://github.com/hydrausb3/wch-ch56x-lib/tree/main/tests/test_firmware_usb_stress_test) to test the USB2 implementation of `wch-ch56x-lib` with the same stress test and it passes with 100000 tries in both HS and FS. However, Hydradancer's firmware is more complex (more interrupts, USB3 and USB2 at the same time, delays to synchronize with Facedancer).
 
 # Getting started (Hydradancer dongle)
 
@@ -44,7 +46,7 @@ and having your user as member of the group `plugdev`.
 First
 
 ```
-Put the Hydradancer dongle in firmware download mode. For that, you need the following buttons : 
+Put the Hydradancer dongle in firmware download mode. For that, you need the following buttons :
 * reset : button with "RST" next to it
 * flash mode : button with "Flash Mode" next to it
 
@@ -219,7 +221,7 @@ hydradancer/
 |   ├─  firmware_hydradancer # firmware for the Hydradancer dongle
 |   ├─  legacy/ # old HydraUSB3 firmwares, unmaintained
 |   ├─  tests/ # test firmwares to create various USB devices
-|   |   ├─ test_backend # Not up-to-date. Test a Facedancer-like configuration, but without Facedancer. 
+|   |   ├─ test_backend # Not up-to-date. Test a Facedancer-like configuration, but without Facedancer.
 |   |   ├─ native/ # C programs using libusb to interact with the test firmwares
 |   |   ├─ scripts/ # Python scripts using pyusb to interact with the test firmwares
 tools/
