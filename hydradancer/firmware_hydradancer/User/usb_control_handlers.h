@@ -26,7 +26,7 @@
 
 __attribute__((always_inline)) static inline void usb_control_endp1_tx_complete(TRANSACTION_STATUS status)
 {
-	event_transfer_finished = true;
+	hydradancer_set_event_transfer_finished(true);
 }
 
 __attribute__((always_inline)) static inline void usb_control_endp_tx_complete(TRANSACTION_STATUS status, uint8_t endp_num)
@@ -89,9 +89,9 @@ static bool _usb_control_endp_rx_callback(uint8_t* data)
 	ep_queue_member_t* ep_queue_member = (ep_queue_member_t*)data;
 	while (true)
 	{
-		bsp_disable_interrupt();
+		BSP_ENTER_CRITICAL();
 		volatile uint16_t status = hydradancer_status.ep_in_status;
-		bsp_enable_interrupt();
+		BSP_EXIT_CRITICAL();
 		if (status & (0x01 << endpoint_mapping_reverse[ep_queue_member->ep_num]))
 			break;
 	}
@@ -168,15 +168,15 @@ bool _do_disable_usb(uint8_t* data)
 {
 	LOG_IF(LOG_LEVEL_DEBUG, LOG_ID_USER, "DISABLE_USB\r\n");
 	usb2_device_deinit();
-	bsp_disable_interrupt();
+	BSP_ENTER_CRITICAL();
 	boards_ready = 0;
-	event_transfer_finished = true;
+	hydradancer_set_event_transfer_finished(true);
 	start_polling = false;
 	hydra_interrupt_queue_free_all();
 	hydra_interrupt_queue_init();
 	hydra_pool_clean(&ep_queue);
 	ramx_pool_init();
-	bsp_enable_interrupt();
+	BSP_EXIT_CRITICAL();
 	usb_emulation_reinit();
 	usb_control_reinit();
 	return true;

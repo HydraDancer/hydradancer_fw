@@ -19,7 +19,7 @@
 #include "wch-ch56x-lib/USBDevice/usb_device.h"
 #include "wch-ch56x-lib/USBDevice/usb_endpoints.h"
 
-#define USB2_ENDP_1_15_MAX_PACKET_SIZE 512
+#define USB2_ENDP_1_15_MAX_PACKET_SIZE 1024
 
 void usb_emulation_reinit(void);
 

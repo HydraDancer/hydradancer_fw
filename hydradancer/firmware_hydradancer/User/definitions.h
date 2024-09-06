@@ -6,7 +6,7 @@
 /* Global define */
 // DEF_ENDP_OUT_BURST_LEVEL / DEF_ENDP_IN_BURST_LEVEL maximum burst size 16 defined by the USB3 specification
 // Warning USB3 endpoint bulk with 8 or 16 burst can be problematic on some PC
-#define DEF_ENDP_OUT_BURST_LEVEL 4
+#define DEF_ENDP_OUT_BURST_LEVEL 1
 #define DEF_ENDP_IN_BURST_LEVEL (DEF_ENDP_OUT_BURST_LEVEL)
 #define DEF_ENDP_MAX_SIZE (DEF_ENDP1_OUT_BURST_LEVEL * ENDP_1_15_MAX_PACKET_SIZE)
 
@@ -89,67 +89,71 @@ void hydradancer_send_event(void);
 
 __attribute__((always_inline)) inline static void write_event(uint8_t type, uint8_t value)
 {
-	bsp_disable_interrupt();
+	BSP_ENTER_CRITICAL();
 	hydradancer_event_t event = {
 		.type = type,
 		.value = value,
 	};
 	fifo_write(&event_queue, &event, 1);
-	bsp_enable_interrupt();
+	BSP_EXIT_CRITICAL();
+}
+
+__attribute__((always_inline)) inline static bool hydradancer_get_event_transfer_finished()
+{
+	bool ret = false;
+	BSP_ENTER_CRITICAL();
+	ret = event_transfer_finished;
+	BSP_EXIT_CRITICAL();
+	return ret;
+}
+
+__attribute__((always_inline)) inline static void hydradancer_set_event_transfer_finished(bool _event_transfer_finished)
+{
+	BSP_ENTER_CRITICAL();
+	event_transfer_finished = _event_transfer_finished;
+	BSP_EXIT_CRITICAL();
 }
 
 __attribute__((always_inline)) inline static void hydradancer_status_set_out(uint8_t endp_num)
 {
-	bsp_disable_interrupt();
+	BSP_ENTER_CRITICAL();
 	hydradancer_status.ep_out_status |= (1 << endp_num);
-	bsp_enable_interrupt();
+	BSP_EXIT_CRITICAL();
 }
 
 __attribute__((always_inline)) inline static void hydradancer_status_set_in(uint8_t endp_num)
 {
-	bsp_disable_interrupt();
+	BSP_ENTER_CRITICAL();
 	hydradancer_status.ep_in_status |= (1 << endp_num);
-	bsp_enable_interrupt();
+	BSP_EXIT_CRITICAL();
 }
 
 __attribute__((always_inline)) inline static void hydradancer_status_set_nak(uint8_t endp_num)
 {
-	bsp_disable_interrupt();
+	BSP_ENTER_CRITICAL();
 	hydradancer_status.ep_in_nak |= (1 << endp_num);
-	bsp_enable_interrupt();
+	BSP_EXIT_CRITICAL();
 }
 
 __attribute__((always_inline)) inline static void hydradancer_status_clear_out(uint8_t endp_num)
 {
-	bsp_disable_interrupt();
+	BSP_ENTER_CRITICAL();
 	hydradancer_status.ep_out_status &= ~(1 << endp_num);
-	bsp_enable_interrupt();
+	BSP_EXIT_CRITICAL();
 }
 
 __attribute__((always_inline)) inline static void hydradancer_status_clear_in(uint8_t endp_num)
 {
-	bsp_disable_interrupt();
+	BSP_ENTER_CRITICAL();
 	hydradancer_status.ep_in_status &= ~(1 << endp_num);
-	bsp_enable_interrupt();
+	BSP_EXIT_CRITICAL();
 }
 
 __attribute__((always_inline)) inline static void hydradancer_status_clear_nak(uint8_t endp_num)
 {
-	bsp_disable_interrupt();
+	BSP_ENTER_CRITICAL();
 	hydradancer_status.ep_in_nak &= ~(1 << endp_num);
-	bsp_enable_interrupt();
-}
-
-__attribute__((always_inline)) inline static void hydradancer_recover_out_interrupt(uint8_t endp_num)
-{
-	if (hydradancer_status.ep_out_status & (0x01 << endpoint_mapping_reverse[endp_num]))
-	{
-		ramx_pool_free(usb_device_1.endpoints.tx[endpoint_mapping[endp_num]].buffer);
-		hydradancer_status_clear_out(endp_num);
-		bsp_disable_interrupt();
-		endp_rx_set_state(&usb_device_0, endp_num, ENDP_STATE_ACK);
-		bsp_enable_interrupt();
-	}
+	BSP_EXIT_CRITICAL();
 }
 
 #endif
