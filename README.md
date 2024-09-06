@@ -11,21 +11,11 @@ The following examples have been confirmed working:
 * template.py
 * usbproxy.py : USB Flash Drive in USB2 High-Speed
 
-**DISCLAIMER** : current results for the [highly-stressed stress test of Facedancer](https://github.com/greatscottgadgets/facedancer/blob/main/test/test_stress.py) with 20000 tries.
+**NOTE** : current results for the [highly-stressed stress test of Facedancer](https://github.com/greatscottgadgets/facedancer/blob/main/test/test_stress.py) with 20000 tries.
 
-The current Facedancer stress test results are the following.
-* USB2 High-Speed
-  * bulk IN/ctrl IN : pass
-  * bulk OUT/ctrl OUT : fails after a few hundred/thousand tries, never reaches 20000
-* USB2 Full-Speed
-  * bulk IN/ctrl IN : fails after a few hundred/thousand tries, never reaches 20000
-  * bulk OUT/ctrl OUT : fails after a few hundred/thousand tries, never reaches 20000
+TLDR : the stress test usually fails after a few thousand tries in both Full-Speed and High-Speed. In practice, Hydradancer is usable (see list of devices above) but might fail in highly-stressed situations. Note that we increased the requirements for this stress test (using the highly-stressed one by default and going up to 20000 tries instead of 100)
 
-We are currently working on fixing those issues and we have a few culprits in mind :
-* missed interrupts : the main culprit for now, it puts Hydradancer in a blocked state.
-* differences between HS/FS : HS has PING packets which reduces the amount of data transfers for OUT transactions. Since there are no FS examples from WCH and no indications in the datasheet, we experimented to solve this issue.
-
-We implemented a [firmware](https://github.com/hydrausb3/wch-ch56x-lib/tree/main/tests/test_firmware_usb_stress_test) to test the USB2 implementation of `wch-ch56x-lib` with the same stress test and it passes with 100000 tries in both HS and FS. However, Hydradancer's firmware is more complex (more interrupts, USB3 and USB2 at the same time, delays to synchronize with Facedancer).
+More about it [here](#stress-test-results).
 
 # Getting started (Hydradancer dongle)
 
@@ -235,6 +225,22 @@ There are no automated tests for now, but that doesn't mean tests are not requir
 For now, the tests in hydradancer/tests consist in loop-back devices, to test for integrity and benchmark the speed of the device in different scenarios.
 
 More information about the different scenarios can be found in [docs/Testing.md](docs/Testing.md).
+
+## Stress-test results
+
+The current Facedancer stress test results are the following.
+* USB2 High-Speed
+  * bulk IN/ctrl IN : pass
+  * bulk OUT/ctrl OUT : fails after a few hundred/thousand tries, rarely reaches 20000
+* USB2 Full-Speed
+  * bulk IN/ctrl IN : fails after a few hundred/thousand tries, rarely reaches 20000
+  * bulk OUT/ctrl OUT : fails after a few hundred/thousand tries, rarely reaches 20000
+
+Currently Hydradancer is usable (see the list of working devices above), however data corruption or timeouts might happen in very stressed conditions. The highly stressed stress test blasts USB transfers of random size and type (control/bulk) and then verifies the integrity of the transfer using USB control transfers.
+
+Solving this issue has proven difficult : it looks random, does not happen immediately (sometimes never). Adding logs or debugging using a USB sniffer can add additional delays and issues. Other architectures have been tried (FreeRTOS, doing all the processing in the interrupt handlers) however they proved to be slower and not more stable.
+
+We implemented a [firmware](https://github.com/hydrausb3/wch-ch56x-lib/tree/main/tests/test_firmware_usb_stress_test) to test the USB2 implementation of `wch-ch56x-lib` with the same stress test and it passes with 100000 tries in both HS and FS. However, Hydradancer's firmware is more complex (more interrupts, USB3 and USB2 at the same time, delays to synchronize with Facedancer).
 
 # How to contribute
 
