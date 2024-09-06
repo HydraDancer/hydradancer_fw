@@ -139,9 +139,9 @@ bool _usb_emulation_endp0_passthrough_setup_callback(uint8_t* data)
 
 	while (true)
 	{
-		bsp_disable_interrupt();
+		BSP_ENTER_CRITICAL();
 		volatile uint16_t status = hydradancer_status.ep_out_status;
-		bsp_enable_interrupt();
+		BSP_EXIT_CRITICAL();
 		if (!(status & (0x01 << 0)))
 			break;
 		if (start_polling)
@@ -154,9 +154,9 @@ bool _usb_emulation_endp0_passthrough_setup_callback(uint8_t* data)
 
 	while (true)
 	{
-		bsp_disable_interrupt();
+		BSP_ENTER_CRITICAL();
 		volatile uint16_t status = hydradancer_status.ep_out_status;
-		bsp_enable_interrupt();
+		BSP_EXIT_CRITICAL();
 		if (!(status & (0x01 << 0)))
 			break;
 		if (start_polling)
@@ -190,9 +190,9 @@ static bool _usb_emulation_endp_rx_callback(uint8_t* data)
 
 	while (true)
 	{
-		bsp_disable_interrupt();
+		BSP_ENTER_CRITICAL();
 		volatile uint16_t status = hydradancer_status.ep_out_status;
-		bsp_enable_interrupt();
+		BSP_EXIT_CRITICAL();
 		if (!(status & (0x01 << endp_num)))
 		{
 			break;
@@ -341,7 +341,7 @@ void usb_emulation_nak_callback(uint8_t endp_num)
 void usb_emulation_usb2_device_handle_bus_reset(void);
 void usb_emulation_usb2_device_handle_bus_reset(void)
 {
-	bsp_disable_interrupt();
+	BSP_ENTER_CRITICAL();
 	hydradancer_status.ep_in_status = (0x1 << 0) & 0xff; // keep ep0
 	hydradancer_status.ep_out_status = 0;
 	hydradancer_status.ep_in_nak = 0;
@@ -356,7 +356,7 @@ void usb_emulation_usb2_device_handle_bus_reset(void)
 	}
 
 	boards_ready = 1;
-	bsp_enable_interrupt();
+	BSP_EXIT_CRITICAL();
 
 	write_event(EVENT_BUS_RESET, 0);
 }

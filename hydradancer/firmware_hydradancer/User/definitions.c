@@ -21,14 +21,16 @@ HYDRA_FIFO_DEF(event_queue, hydradancer_event_t, EVENT_QUEUE_SIZE);
 
 void hydradancer_send_event(void)
 {
-	if (event_transfer_finished)
+	BSP_ENTER_CRITICAL();
+	if (hydradancer_get_event_transfer_finished())
 	{
 		uint16_t events_count = fifo_count(&event_queue);
 		if (events_count > 0)
 		{
-			event_transfer_finished = false;
+			hydradancer_set_event_transfer_finished(false);
 			uint16_t count_read = fifo_read_n(&event_queue, (void*)_events_buffer, events_count);
 			endp_tx_set_new_buffer(&usb_device_1, 1, (uint8_t*)_events_buffer, count_read * sizeof(hydradancer_event_t));
 		}
 	}
+	BSP_EXIT_CRITICAL();
 }

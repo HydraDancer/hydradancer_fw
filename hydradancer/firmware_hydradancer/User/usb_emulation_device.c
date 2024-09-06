@@ -6,7 +6,7 @@ void usb_emulation_reinit(void)
 	// // uncomment to empty log_buffer on emulated device disconnection
 	// LOG_DUMP();
 
-	bsp_disable_interrupt();
+	BSP_ENTER_CRITICAL();
 	// Setup ramx pool and interrupt_queue
 	usb_device_set_usb3_device_descriptor(&usb_device_0, NULL);
 	usb_device_set_usb2_device_descriptor(&usb_device_0, NULL);
@@ -24,7 +24,7 @@ void usb_emulation_reinit(void)
 	{
 		endp_rx_set_state(&usb_device_0, i, ENDP_STATE_ACK);
 	}
-	bsp_enable_interrupt();
+	BSP_EXIT_CRITICAL();
 }
 
 void usb_emulation_init_endpoints(void)
