@@ -96,7 +96,7 @@ static bool _usb_control_endp_rx_callback(uint8_t* data)
 			break;
 	}
 	endp_tx_set_new_buffer(&usb_device_0, endpoint_mapping_reverse[ep_queue_member->ep_num], ep_queue_member->ptr, ep_queue_member->size);
-	hydradancer_status_set_in(endpoint_mapping_reverse[ep_queue_member->ep_num]);
+	hydradancer_status_clear_in(endpoint_mapping_reverse[ep_queue_member->ep_num]);
 	return true;
 }
 
