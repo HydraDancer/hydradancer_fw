@@ -62,7 +62,7 @@ jobs:
           cmake --install build/
 
       - name: Upload artifact all-firmwares${{steps.id_version.outputs.app_version}}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: all-firmwares${{steps.id_version.outputs.app_version}}
           path: |
@@ -103,7 +103,7 @@ jobs:
          make
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: native-${{ matrix.PROJECT_NAME }}${{steps.id_version.outputs.app_version}}
         path: hydradancer/tests/native/${{ matrix.PROJECT_NAME }}/${{ matrix.PROJECT_NAME }}
@@ -142,7 +142,7 @@ jobs:
          make
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: native-${{ matrix.PROJECT_NAME }}${{steps.id_version.outputs.app_version}}
         path: hydradancer/tests/test_backend/${{ matrix.PROJECT_NAME }}/${{ matrix.PROJECT_NAME }}
