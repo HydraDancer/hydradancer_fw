@@ -96,7 +96,7 @@ static bool _usb_control_endp_rx_callback(uint8_t* data)
 			break;
 	}
 	endp_tx_set_new_buffer(&usb_device_0, endpoint_mapping_reverse[ep_queue_member->ep_num], ep_queue_member->ptr, ep_queue_member->size);
-	hydradancer_status_set_in(endpoint_mapping_reverse[ep_queue_member->ep_num]);
+	hydradancer_status_clear_in(endpoint_mapping_reverse[ep_queue_member->ep_num]);
 	return true;
 }
 
@@ -196,6 +196,22 @@ uint16_t usb_control_endp0_user_handled_control_request(USB_SETUP* request, uint
 			fifo_read_n(&event_queue, (void*)_events_buffer, events_count);
 			return events_count * sizeof(hydradancer_event_t);
 		}
+		return 0;
+	}
+	else if (request->bRequest == CLEAR_HALT)
+	{
+		LOG("CLEAR_HALT ep %d dir %d \r\n", request->wValue.bw.bb1, request->wValue.bw.bb0);
+
+		uint32_t ep = 0;
+		if (request->wValue.bw.bb0 == 0)
+		{
+			ep = 1U << ((request->wValue.bw.bb1 - 1) * 2 + 1);
+		}
+		else
+		{
+			ep = 1U << ((request->wValue.bw.bb1 - 1) * 2);
+		}
+		usb2_setup_endpoints_in_mask(ep);
 		return 0;
 	}
 	else if (request->bRequest == CHECK_HYDRADANCER_READY)
