@@ -3,8 +3,8 @@
 
 #include "definitions.h"
 #include "wch-ch56x-lib/memory/ramx_alloc.h"
-#include "wch-ch56x-lib/USBDevice/usb_descriptors.h"
-#include "wch-ch56x-lib/USBDevice/usb_device.h"
+#include "wch-ch56x-lib/usb/usb_descriptors.h"
+#include "wch-ch56x-lib/usb/usb_device.h"
 
 uint8_t hydradancer_product_string_descriptor[] = {
 	'H',

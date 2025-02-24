@@ -2,7 +2,7 @@
 #define USB3_DEVICE_DESCRIPTOR_H
 
 #include "definitions.h"
-#include "wch-ch56x-lib/USBDevice/usb_descriptors.h"
+#include "wch-ch56x-lib/usb/usb_descriptors.h"
 
 const uint8_t* usb3_device_configs[1];
 

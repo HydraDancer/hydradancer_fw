@@ -14,10 +14,10 @@
 
 #include "wch-ch56x-lib/interrupt_queue/interrupt_queue.h"
 #include "wch-ch56x-lib/memory/ramx_alloc.h"
-#include "wch-ch56x-lib/USBDevice/usb20.h"
-#include "wch-ch56x-lib/USBDevice/usb_descriptors.h"
-#include "wch-ch56x-lib/USBDevice/usb_device.h"
-#include "wch-ch56x-lib/USBDevice/usb_endpoints.h"
+#include "wch-ch56x-lib/usb/usb20.h"
+#include "wch-ch56x-lib/usb/usb_descriptors.h"
+#include "wch-ch56x-lib/usb/usb_device.h"
+#include "wch-ch56x-lib/usb/usb_endpoints.h"
 
 #define USB2_ENDP_1_15_MAX_PACKET_SIZE 1024
 

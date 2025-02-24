@@ -17,11 +17,11 @@
 #include "wch-ch56x-lib/interrupt_queue/interrupt_queue.h"
 #include "wch-ch56x-lib/logging/log_to_buffer.h"
 #include "wch-ch56x-lib/memory/ramx_alloc.h"
-#include "wch-ch56x-lib/USBDevice/usb20.h"
-#include "wch-ch56x-lib/USBDevice/usb2_utils.h"
-#include "wch-ch56x-lib/USBDevice/usb30.h"
-#include "wch-ch56x-lib/USBDevice/usb_descriptors.h"
-#include "wch-ch56x-lib/USBDevice/usb_endpoints.h"
+#include "wch-ch56x-lib/usb/usb20.h"
+#include "wch-ch56x-lib/usb/usb2_utils.h"
+#include "wch-ch56x-lib/usb/usb30.h"
+#include "wch-ch56x-lib/usb/usb_descriptors.h"
+#include "wch-ch56x-lib/usb/usb_endpoints.h"
 
 void reinit_emulated_board(void);
 void reinit_emulated_board(void)

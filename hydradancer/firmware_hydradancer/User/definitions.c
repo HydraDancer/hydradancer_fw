@@ -1,5 +1,5 @@
 #include "definitions.h"
-#include "wch-ch56x-lib/USBDevice/usb20.h"
+#include "wch-ch56x-lib/usb/usb20.h"
 
 uint8_t endpoint_mapping_reverse[MAX_ENDPOINTS_SUPPORTED]; //endpoint_mapping_reverse[PC_Endpoint] = Target_Endpoint
 uint8_t endpoint_mapping[MAX_ENDPOINTS_SUPPORTED]; //endpoint_mapping[Target_Endpoint] = PC_Endpoint

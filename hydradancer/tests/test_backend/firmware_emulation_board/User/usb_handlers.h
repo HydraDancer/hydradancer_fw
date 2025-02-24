@@ -6,11 +6,11 @@
 #include "wch-ch56x-lib/HSPIDeviceScheduled/hspi_scheduled.h"
 #include "wch-ch56x-lib/logging/logging.h"
 #include "wch-ch56x-lib/memory/ramx_alloc.h"
-#include "wch-ch56x-lib/USBDevice/usb20.h"
-#include "wch-ch56x-lib/USBDevice/usb2_utils.h"
-#include "wch-ch56x-lib/USBDevice/usb30.h"
-#include "wch-ch56x-lib/USBDevice/usb_descriptors.h"
-#include "wch-ch56x-lib/USBDevice/usb_endpoints.h"
+#include "wch-ch56x-lib/usb/usb20.h"
+#include "wch-ch56x-lib/usb/usb2_utils.h"
+#include "wch-ch56x-lib/usb/usb30.h"
+#include "wch-ch56x-lib/usb/usb_descriptors.h"
+#include "wch-ch56x-lib/usb/usb_endpoints.h"
 
 void endp0_tx_complete(TRANSACTION_STATUS status);
 void endp0_tx_complete(TRANSACTION_STATUS status)

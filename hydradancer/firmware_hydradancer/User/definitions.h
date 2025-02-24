@@ -13,8 +13,8 @@
 #include "wch-ch56x-lib/memory/fifo.h"
 #include "wch-ch56x-lib/memory/pool.h"
 #include "wch-ch56x-lib/memory/ramx_alloc.h"
-#include "wch-ch56x-lib/USBDevice/usb_device.h"
-#include "wch-ch56x-lib/USBDevice/usb_endpoints.h"
+#include "wch-ch56x-lib/usb/usb_device.h"
+#include "wch-ch56x-lib/usb/usb_endpoints.h"
 
 #define USB2_LS 0x00
 #define USB2_FS 0x01
