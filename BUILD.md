@@ -191,7 +191,7 @@ Some logging filters might activate too much logs for the USB controllers to wor
 In this case, the `LOG` macro will bypass all filters and levels, allowing you to log just what you need.
 
 - Log methods
-    - `LOG_OUTPUT=printf`. Logs are written directly to the UART
+    - `LOG_OUTPUT=uart`. Logs are written directly to the UART
     - `LOG_OUTPUT=buffer`. Logs are stored in a buffer, and flushed to the UART when calling `LOG_DUMP()`
     - `LOG_OUTPUT=serdes`. Logs are directly sent using Serdes. Might be used to share logs from one board to the other. Not very well tested.
 - Log levels

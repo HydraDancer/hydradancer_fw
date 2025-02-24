@@ -20,7 +20,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE POOL_BLOCK_SIZE=1024 POOL_BLO
 
 #### logging options
 
-# set(LOG_OUTPUT "printf")
+# set(LOG_OUTPUT "uart")
 # set(LOG_LEVEL 1)
 # set(LOG_FILTER_IDS "1")
 
@@ -31,7 +31,7 @@ if (DEFINED LOG_OUTPUT)
     if (${LOG_OUTPUT} STREQUAL "serdes")
         target_compile_definitions(${PROJECT_NAME} PRIVATE LOG_TYPE_SERDES=1)
     endif()
-    if (${LOG_OUTPUT} STREQUAL "printf")
+    if (${LOG_OUTPUT} STREQUAL "uart")
         target_compile_definitions(${PROJECT_NAME} PRIVATE LOG_TYPE_PRINTF=1)
     endif()
 endif()
