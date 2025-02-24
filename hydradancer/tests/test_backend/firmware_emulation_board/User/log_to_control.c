@@ -1,6 +1,6 @@
 #include "log_to_control.h"
 #include "wch-ch56x-lib/logging/logging.h"
-#include "wch-ch56x-lib/SerDesDevice/serdes.h"
+#include "wch-ch56x-lib/serdes/serdes.h"
 
 #include "CH56x_common.h"
 #include <stdarg.h>
