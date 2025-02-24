@@ -4,6 +4,8 @@ set(CMAKE_EXECUTABLE_SUFFIX_C ".elf")
 
 add_executable(${PROJECT_NAME})
 
+execute_process(COMMAND ${CMAKE_CURRENT_LIST_DIR}/make_version.sh ${CMAKE_CURRENT_LIST_DIR}/User/version.h)
+
 target_sources(${PROJECT_NAME} PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/User/main.c
     ${CMAKE_CURRENT_LIST_DIR}/User/definitions.c
