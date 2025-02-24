@@ -2,7 +2,7 @@
 #define USB_HANDLERS_H
 
 #include "definitions.h"
-#include "wch-ch56x-lib/HSPIDeviceScheduled/hspi_scheduled.h"
+#include "wch-ch56x-lib/hspi_scheduled/hspi_scheduled.h"
 #include "wch-ch56x-lib/logging/logging.h"
 #include "wch-ch56x-lib/memory/ramx_alloc.h"
 #include "wch-ch56x-lib/usb/usb30.h"

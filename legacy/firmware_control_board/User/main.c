@@ -15,7 +15,7 @@
 #include "usb3_device_descriptors.h"
 #include "usb_device.h"
 #include "usb_handlers.h"
-#include "wch-ch56x-lib/HSPIDeviceScheduled/hspi_scheduled.h"
+#include "wch-ch56x-lib/hspi_scheduled/hspi_scheduled.h"
 #include "wch-ch56x-lib/interrupt_queue/interrupt_queue.h"
 #include "wch-ch56x-lib/logging/logging.h"
 #include "wch-ch56x-lib/memory/ramx_alloc.h"
