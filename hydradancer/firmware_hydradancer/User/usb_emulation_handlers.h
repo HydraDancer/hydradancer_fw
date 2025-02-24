@@ -29,7 +29,6 @@
 
 __attribute__((always_inline)) static inline void usb_emulation_endp_tx_complete(TRANSACTION_STATUS status, uint8_t endp_num)
 {
-	ramx_pool_free(usb_device_0.endpoints.tx[endp_num].buffer);
 	hydradancer_status_clear_nak(endp_num);
 	hydradancer_status_set_in(endp_num);
 	write_event(EVENT_IN_BUFFER_AVAILABLE, endp_num);
@@ -142,6 +141,7 @@ bool _usb_emulation_endp0_passthrough_setup_callback(uint8_t* data)
 		BSP_ENTER_CRITICAL();
 		volatile uint16_t status = hydradancer_status.ep_out_status;
 		BSP_EXIT_CRITICAL();
+		LOG("setup status %d\r\n", status);
 		if (!(status & (0x01 << 0)))
 			break;
 		if (start_polling)
@@ -184,6 +184,21 @@ static bool _usb_emulation_endp_rx_callback(uint8_t* data)
 	uint8_t* ptr = ((ep_queue_member_t*)data)->ptr;
 	uint16_t size = ((ep_queue_member_t*)data)->size;
 
+	while (true)
+	{
+		BSP_ENTER_CRITICAL();
+		volatile uint16_t status = hydradancer_status.ep_out_status;
+		BSP_EXIT_CRITICAL();
+		LOG("status %d\r\n", status);
+		if (!(status & (0x01 << endp_num)))
+		{
+			break;
+		}
+
+		if (start_polling)
+			hydradancer_send_event();
+	}
+
 	hydradancer_status_set_out(endp_num);
 	endp_tx_set_new_buffer(&usb_device_1, endpoint_mapping[endp_num], ptr, size);
 	write_event(EVENT_OUT_BUFFER_AVAILABLE, endp_num);
@@ -206,21 +221,24 @@ static bool _usb_emulation_endp_rx_callback(uint8_t* data)
 
 __attribute__((always_inline)) static inline uint8_t usb_emulation_endp_rx_callback(uint8_t* const ptr, uint16_t size, uint8_t endp_num)
 {
-	uint8_t* buffer = ramx_pool_alloc_bytes(ENDP_1_15_MAX_PACKET_SIZE);
-
+	uint8_t* buffer = NULL;
 	if (endp_num == 0)
 	{
+		buffer = ramx_pool_alloc_bytes(ENDP_1_15_MAX_PACKET_SIZE);
 		memcpy(buffer, ptr, size);
+		ep_queue_member_t* ep_queue_member = hydra_pool_get(&ep_queue);
+		ep_queue_member->ep_num = endp_num;
+		ep_queue_member->ptr = endp_num == 0 ? buffer : ptr;
+		ep_queue_member->size = size;
+		hydra_interrupt_queue_set_next_task(_usb_emulation_endp_rx_callback, (uint8_t*)ep_queue_member, _ep_queue_cleanup);
 	}
 	else
 	{
-		usb_device_0.endpoints.rx[endp_num].buffer = buffer;
+		usb_device_0.endpoints.rx[endp_num].buffer = ptr;
+		hydradancer_status_set_out(endp_num);
+		endp_tx_set_new_buffer(&usb_device_1, endpoint_mapping[endp_num], endp_num == 0 ? buffer : ptr, size);
+		write_event(EVENT_OUT_BUFFER_AVAILABLE, endp_num);
 	}
-	ep_queue_member_t* ep_queue_member = hydra_pool_get(&ep_queue);
-	ep_queue_member->ep_num = endp_num;
-	ep_queue_member->ptr = endp_num == 0 ? buffer : ptr;
-	ep_queue_member->size = size;
-	hydra_interrupt_queue_set_next_task(_usb_emulation_endp_rx_callback, (uint8_t*)ep_queue_member, _ep_queue_cleanup);
 	return ENDP_STATE_NAK;
 }
 
@@ -332,33 +350,34 @@ void usb_emulation_nak_callback(uint8_t endp_num)
 	}
 }
 
-/*
-1. Warn Facedancer about the bus reset via the control board
-2. Facedancer should then trigger a usb vendor control reset to the control board
-3. the control board tells the emulation board to handle it's side of the bus reset
-4. the emulation board tells the control board to reset as well
-*/
-void usb_emulation_usb2_device_handle_bus_reset(void);
-void usb_emulation_usb2_device_handle_bus_reset(void)
+bool _usb_emulation_usb2_device_handle_bus_reset(uint8_t* data);
+bool _usb_emulation_usb2_device_handle_bus_reset(uint8_t* data)
 {
+	LOG("bus reset \r\n");
 	BSP_ENTER_CRITICAL();
+	hydra_interrupt_queue_free_all();
+	fifo_clean(&event_queue);
 	hydradancer_status.ep_in_status = (0x1 << 0) & 0xff; // keep ep0
 	hydradancer_status.ep_out_status = 0;
 	hydradancer_status.ep_in_nak = 0;
 	hydradancer_status.other_events = 0;
 
-	// Set the USB device parameters
-	usb2_ep0_passthrough_enabled(true);
-
-	for (int i = 0; i < MAX_ENDPOINTS_SUPPORTED; ++i)
+	for (int ep_num = 1; ep_num < 16; ++ep_num)
 	{
-		endp_rx_set_state(&usb_device_0, i, ENDP_STATE_ACK);
+		usb_device_0.endpoints.rx[ep_num].state = ENDP_STATE_ACK;
+		usb_device_0.endpoints.tx[ep_num].state = ENDP_STATE_NAK;
 	}
-
+	usb2_setup_endpoints_in_mask(usb_device_0.endpoint_mask);
 	boards_ready = 1;
-	BSP_EXIT_CRITICAL();
-
 	write_event(EVENT_BUS_RESET, 0);
+	BSP_EXIT_CRITICAL();
+	return true;
+}
+
+void usb_emulation_usb2_device_handle_bus_reset(void);
+void usb_emulation_usb2_device_handle_bus_reset(void)
+{
+	hydra_interrupt_queue_set_next_task(_usb_emulation_usb2_device_handle_bus_reset, NULL, NULL);
 }
 
 #endif

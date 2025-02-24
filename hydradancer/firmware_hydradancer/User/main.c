@@ -41,7 +41,7 @@ int main()
 	PFIC_SetPriority(INT_ID_LINK, 0x90);
 	PFIC_SetPriority(INT_ID_USBHS, 0xc0);
 	PFIC_HaltPushCfg(ENABLE);
-	PFIC_INTNestCfg(ENABLE);
+	PFIC_INTNestCfg(DISABLE);
 	PFIC_SetFastIRQ((uint32_t)LINK_IRQHandler, INT_ID_LINK, 0);
 	PFIC_SetFastIRQ((uint32_t)USBSS_IRQHandler, INT_ID_USBSS, 1);
 	PFIC_SetFastIRQ((uint32_t)USBHS_IRQHandler, INT_ID_USBHS, 2);
@@ -206,7 +206,7 @@ __attribute__((interrupt("WCH-Interrupt-fast"))) void WDOG_IRQHandler(void)
 
 	LOG_DUMP();
 
-	bsp_wait_ms_delay(100000000);
+	SYS_ResetExecute();
 }
 
 /*********************************************************************

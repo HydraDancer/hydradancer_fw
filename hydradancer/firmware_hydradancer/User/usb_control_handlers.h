@@ -33,7 +33,8 @@ __attribute__((always_inline)) static inline void usb_control_endp_tx_complete(T
 {
 	if (hydradancer_status.ep_out_status & (0x01 << endpoint_mapping_reverse[endp_num]))
 	{
-		ramx_pool_free(usb_device_1.endpoints.tx[endp_num].buffer);
+		if (endpoint_mapping_reverse[endp_num] == 0)
+			ramx_pool_free(usb_device_1.endpoints.tx[endp_num].buffer);
 		hydradancer_status_clear_out(endpoint_mapping_reverse[endp_num]);
 		endp_rx_set_state(&usb_device_0, endpoint_mapping_reverse[endp_num], ENDP_STATE_ACK);
 	}
@@ -106,24 +107,25 @@ __attribute__((always_inline)) static inline uint8_t usb_control_endp_rx_callbac
 	{
 		return ENDP_STATE_NAK;
 	}
-	uint8_t* buffer = ramx_pool_alloc_bytes(ENDP_1_15_MAX_PACKET_SIZE);
-	if (buffer == NULL)
+
+	if (endpoint_mapping_reverse[endp_num] == 0)
 	{
-		LOG_IF_LEVEL(LOG_LEVEL_CRITICAL, "usb_control_endp_rx_callback could not allocate buffer\r\n");
-		return ENDP_STATE_NAK;
+		ep_queue_member_t* ep_queue_member = hydra_pool_get(&ep_queue);
+		if (ep_queue_member == NULL)
+		{
+			LOG_IF_LEVEL(LOG_LEVEL_CRITICAL, "usb_control_endp_rx_callback could not allocate pool member");
+			return ENDP_STATE_NAK;
+		}
+		ep_queue_member->ep_num = endp_num;
+		ep_queue_member->ptr = ptr;
+		ep_queue_member->size = size;
+		hydra_interrupt_queue_set_next_task(_usb_control_endp_rx_callback, (uint8_t*)ep_queue_member, _ep_queue_cleanup);
 	}
-	ep_queue_member_t* ep_queue_member = hydra_pool_get(&ep_queue);
-	if (ep_queue_member == NULL)
+	else
 	{
-		LOG_IF_LEVEL(LOG_LEVEL_CRITICAL, "usb_control_endp_rx_callback could not allocate pool member");
-		ramx_pool_free(buffer);
-		return ENDP_STATE_NAK;
+		hydradancer_status_clear_in(endpoint_mapping_reverse[endp_num]);
+		endp_tx_set_new_buffer(&usb_device_0, endpoint_mapping_reverse[endp_num], ptr, size);
 	}
-	ep_queue_member->ep_num = endp_num;
-	ep_queue_member->ptr = ptr;
-	ep_queue_member->size = size;
-	hydra_interrupt_queue_set_next_task(_usb_control_endp_rx_callback, (uint8_t*)ep_queue_member, _ep_queue_cleanup);
-	usb_device_1.endpoints.rx[ep_queue_member->ep_num].buffer = buffer;
 	return ENDP_STATE_ACK;
 }
 
@@ -163,22 +165,23 @@ uint8_t usb_control_endp7_rx_callback(uint8_t* const ptr, uint16_t size)
 	return usb_control_endp_rx_callback(ptr, size, 7);
 }
 
-bool _do_disable_usb(uint8_t* data);
-bool _do_disable_usb(uint8_t* data)
+bool do_disable_usb(void);
+bool do_disable_usb(void)
 {
 	LOG_IF(LOG_LEVEL_DEBUG, LOG_ID_USER, "DISABLE_USB\r\n");
-	usb2_device_deinit();
 	BSP_ENTER_CRITICAL();
+	usb2_device_deinit();
 	boards_ready = 0;
-	hydradancer_set_event_transfer_finished(true);
 	start_polling = false;
+	hydradancer_set_event_transfer_finished(true);
 	hydra_interrupt_queue_free_all();
 	hydra_interrupt_queue_init();
 	hydra_pool_clean(&ep_queue);
+	fifo_clean(&event_queue);
 	ramx_pool_init();
-	BSP_EXIT_CRITICAL();
 	usb_emulation_reinit();
 	usb_control_reinit();
+	BSP_EXIT_CRITICAL();
 	return true;
 }
 
@@ -193,8 +196,8 @@ uint16_t usb_control_endp0_user_handled_control_request(USB_SETUP* request, uint
 		uint16_t events_count = fifo_count(&event_queue);
 		if (events_count > 0)
 		{
-			fifo_read_n(&event_queue, (void*)_events_buffer, events_count);
-			return events_count * sizeof(hydradancer_event_t);
+			uint16_t count_read = fifo_read_n(&event_queue, (void*)_events_buffer, events_count);
+			return count_read * sizeof(hydradancer_event_t);
 		}
 		return 0;
 	}
@@ -206,10 +209,13 @@ uint16_t usb_control_endp0_user_handled_control_request(USB_SETUP* request, uint
 		if (request->wValue.bw.bb0 == 0)
 		{
 			ep = 1U << ((request->wValue.bw.bb1 - 1) * 2 + 1);
+			usb_device_0.endpoints.rx[request->wValue.bw.bb1].state = ENDP_STATE_ACK;
 		}
 		else
 		{
 			ep = 1U << ((request->wValue.bw.bb1 - 1) * 2);
+			usb_device_0.endpoints.tx[request->wValue.bw.bb1].state = ENDP_STATE_NAK;
+			write_event(EVENT_IN_BUFFER_AVAILABLE, request->wValue.bw.bb1);
 		}
 		usb2_setup_endpoints_in_mask(ep);
 		return 0;
@@ -227,17 +233,16 @@ uint16_t usb_control_endp0_user_handled_control_request(USB_SETUP* request, uint
 		hydradancer_status.ep_in_status |= (0x01 << request->wValue.bw.bb1);
 		hydradancer_status.ep_out_status &= ~(0x01 << request->wValue.bw.bb1);
 		usb_device_0.endpoints.rx[request->wValue.bw.bb1].max_packet_size = usb_device_0.speed == USB2_HIGHSPEED ? 512 : 64;
+		usb_device_0.endpoints.rx[request->wValue.bw.bb1].state = ENDP_STATE_ACK;
+		usb_device_0.endpoints.tx[request->wValue.bw.bb1].state = ENDP_STATE_NAK;
+
 		if (request->wValue.bw.bb1 > 0)
 		{
 			uint32_t new_eps = ((1U << ((request->wValue.bw.bb1 - 1) * 2)) | (1U << (((request->wValue.bw.bb1 - 1) * 2 + 1))));
 			usb_device_0.endpoint_mask |= new_eps;
 			usb2_setup_endpoints_in_mask(new_eps);
 		}
-		hydradancer_event_t event = {
-			.type = EVENT_IN_BUFFER_AVAILABLE,
-			.value = request->wValue.bw.bb1,
-		};
-		fifo_write(&event_queue, &event, 1);
+		write_event(EVENT_IN_BUFFER_AVAILABLE, request->wValue.bw.bb1);
 		return 0;
 	}
 	else if (request->bRequest == SET_EP_RESPONSE)
@@ -282,7 +287,7 @@ uint16_t usb_control_endp0_user_handled_control_request(USB_SETUP* request, uint
 	}
 	else if (request->bRequest == DISABLE_USB)
 	{
-		hydra_interrupt_queue_set_next_task(_do_disable_usb, NULL, NULL);
+		do_disable_usb();
 		return 0;
 	}
 	else if (request->bRequest == SET_ADDRESS_REQUEST_CODE)
