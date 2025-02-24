@@ -7,7 +7,6 @@ uint8_t endpoint_mapping[MAX_ENDPOINTS_SUPPORTED]; //endpoint_mapping[Target_End
 __attribute__((aligned(16))) volatile hydradancer_status_t hydradancer_status __attribute__((section(".DMADATA"))) = { .ep_in_nak = 0, .ep_in_status = 0, .ep_out_status = 0, .other_events = 0 };
 __attribute__((aligned(16))) volatile uint8_t boards_ready __attribute__((section(".DMADATA"))) = 0;
 __attribute__((aligned(16))) volatile bool event_transfer_finished = true;
-__attribute__((aligned(16))) volatile bool start_polling = false;
 __attribute__((aligned(16))) volatile hydradancer_event_t _events_buffer[EVENT_QUEUE_SIZE] __attribute__((section(".DMADATA")));
 
 HYDRA_POOL_DEF(ep_queue, ep_queue_member_t, 100);

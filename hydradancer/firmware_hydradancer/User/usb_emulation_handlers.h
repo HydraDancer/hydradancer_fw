@@ -144,8 +144,7 @@ bool _usb_emulation_endp0_passthrough_setup_callback(uint8_t* data)
 		LOG("setup status %d\r\n", status);
 		if (!(status & (0x01 << 0)))
 			break;
-		if (start_polling)
-			hydradancer_send_event();
+		hydradancer_send_event();
 	}
 
 	hydradancer_status_set_out(0);
@@ -159,8 +158,7 @@ bool _usb_emulation_endp0_passthrough_setup_callback(uint8_t* data)
 		BSP_EXIT_CRITICAL();
 		if (!(status & (0x01 << 0)))
 			break;
-		if (start_polling)
-			hydradancer_send_event();
+		hydradancer_send_event();
 	}
 
 	return true;
@@ -195,8 +193,7 @@ static bool _usb_emulation_endp_rx_callback(uint8_t* data)
 			break;
 		}
 
-		if (start_polling)
-			hydradancer_send_event();
+		hydradancer_send_event();
 	}
 
 	hydradancer_status_set_out(endp_num);
@@ -213,8 +210,7 @@ static bool _usb_emulation_endp_rx_callback(uint8_t* data)
 			break;
 		}
 
-		if (start_polling)
-			hydradancer_send_event();
+		hydradancer_send_event();
 	}
 	return true;
 }

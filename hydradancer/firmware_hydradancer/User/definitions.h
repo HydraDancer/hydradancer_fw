@@ -67,7 +67,6 @@ extern uint8_t endpoint_mapping[MAX_ENDPOINTS_SUPPORTED]; //endpoint_mapping[Tar
 extern __attribute__((aligned(16))) volatile hydradancer_status_t hydradancer_status __attribute__((section(".DMADATA")));
 extern __attribute__((aligned(16))) volatile uint8_t boards_ready __attribute__((section(".DMADATA")));
 extern __attribute__((aligned(16))) volatile bool event_transfer_finished;
-extern __attribute__((aligned(16))) volatile bool start_polling;
 
 #define EVENT_QUEUE_SIZE 100 // don't forget to update it in the Facedancer backend as well
 

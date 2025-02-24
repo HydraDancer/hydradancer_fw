@@ -162,14 +162,7 @@ int main()
 	{
 		WWDG_SetCounter(0); // rearm the watchdog
 		hydra_interrupt_queue_run();
-
-		if (start_polling)
-			hydradancer_send_event();
-
-		if (bsp_ubtn())
-		{
-			LOG_DUMP();
-		}
+		hydradancer_send_event();
 	}
 }
 

@@ -172,7 +172,6 @@ bool do_disable_usb(void)
 	BSP_ENTER_CRITICAL();
 	usb2_device_deinit();
 	boards_ready = 0;
-	start_polling = false;
 	hydradancer_set_event_transfer_finished(true);
 	hydra_interrupt_queue_free_all();
 	hydra_interrupt_queue_init();
@@ -299,7 +298,6 @@ uint16_t usb_control_endp0_user_handled_control_request(USB_SETUP* request, uint
 	else if (request->bRequest == CONFIGURED)
 	{
 		LOG_IF(LOG_LEVEL_DEBUG, LOG_ID_USER, "CONFIGURED\r\n");
-		start_polling = true;
 		return 0;
 	}
 
