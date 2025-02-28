@@ -131,7 +131,7 @@ Previous results for Hydradancer used priming, which made it faster. The new ver
   </thead>
   <tbody>
     <tr>
-      <th>Hydradancer High-speed</th>
+      <th>Hydradancer High-speed (firmware v1.3)</th>
       <td>3911±151 KB/s</td>
       <td>4%</td>
       <td>499.712KB</td>
@@ -141,7 +141,7 @@ Previous results for Hydradancer used priming, which made it faster. The new ver
       <td>99.9%</td>
     </tr>
     <tr>
-      <th>Hydradancer High-speed (priming)</th>
+      <th>Hydradancer High-speed (priming) (firmware v1.3)</th>
       <td>3788±194 KB/s</td>
       <td>5%</td>
       <td>499.712KB</td>
@@ -151,7 +151,7 @@ Previous results for Hydradancer used priming, which made it faster. The new ver
       <td>99.9%</td>
     </tr>
     <tr>
-      <th>Hydradancer Full-speed (priming)</th>
+      <th>Hydradancer Full-speed (priming) (firmware v1.3)</th>
       <td>369.80±2.46 KB/s</td>
       <td>1%</td>
       <td>49.984KB</td>
@@ -161,7 +161,7 @@ Previous results for Hydradancer used priming, which made it faster. The new ver
       <td>99.9%</td>
     </tr>
     <tr>
-      <th>Hydradancer Full-speed</th>
+      <th>Hydradancer Full-speed (firmware v1.3)</th>
       <td>369.66±4.98 KB/s</td>
       <td>1%</td>
       <td>49.984KB</td>
