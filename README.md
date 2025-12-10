@@ -13,7 +13,7 @@ The following examples have been confirmed working:
 
 **NOTE** : current results for the [highly-stressed stress test of Facedancer](https://github.com/greatscottgadgets/facedancer/blob/main/test/test_stress.py) with 20000 tries.
 
-TLDR : the stress test usually fails after a few thousand tries in both Full-Speed and High-Speed. In practice, Hydradancer is usable (see list of devices above) but might fail in highly-stressed situations. Note that we increased the requirements for this stress test (using the highly-stressed one by default and going up to 20000 tries instead of 100)
+TLDR : the stress test usually fails after a few thousand tries in both Full-Speed and High-Speed. In practice, Hydradancer is usable (see list of devices above) but might fail in highly-stressed situations. Note that we increased the requirements for this stress test (using the highly-stressed one by default and going up to 20000 tries instead of 100).
 
 More about it [here](#stress-test-results).
 
@@ -241,6 +241,8 @@ Currently Hydradancer is usable (see the list of working devices above), however
 Solving this issue has proven difficult : it looks random, does not happen immediately (sometimes never). Adding logs or debugging using a USB sniffer can add additional delays and issues. Other architectures have been tried (FreeRTOS, doing all the processing in the interrupt handlers) however they proved to be slower and not more stable.
 
 We implemented a [firmware](https://github.com/hydrausb3/wch-ch56x-lib/tree/main/tests/test_firmware_usb_stress_test) to test the USB2 implementation of `wch-ch56x-lib` with the same stress test and it passes with 100000 tries in both HS and FS. However, Hydradancer's firmware is more complex (more interrupts, USB3 and USB2 at the same time, delays to synchronize with Facedancer).
+
+**Update** We contacted _WCH_ about this issue, however we did not manage to get technical answers. The archive provided to _WCH_ that tries to isolate the issue is available in _docs/wch_questions_wch569.zip_ if you want to take a look.
 
 # How to contribute
 
