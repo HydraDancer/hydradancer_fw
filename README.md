@@ -11,9 +11,9 @@ The following examples have been confirmed working:
 * template.py
 * usbproxy.py : USB Flash Drive in USB2 High-Speed
 
-**NOTE** : current results for the [highly-stressed stress test of Facedancer](https://github.com/greatscottgadgets/facedancer/blob/main/test/test_stress.py) with 20000 tries.
+**WARNING** : current results for the [highly-stressed stress test of Facedancer](https://github.com/greatscottgadgets/facedancer/blob/main/test/test_stress.py) with 20000 tries.
 
-TLDR : the stress test usually fails after a few thousand tries in both Full-Speed and High-Speed. In practice, Hydradancer is usable (see list of devices above) but might fail in highly-stressed situations. Note that we increased the requirements for this stress test (using the highly-stressed one by default and going up to 20000 tries instead of 100)
+TLDR : the stress test usually fails after a few thousand tries in both Full-Speed and High-Speed. In practice, Hydradancer is usable (see list of devices above) but might fail in highly-stressed situations. It is sufficient for hacking but if you are proxying devices or emulating a mass-storage device, be prepared for data corruption. Note that we increased the requirements for this stress test (using the highly-stressed one by default and going up to 20000 tries instead of 100).
 
 More about it [here](#stress-test-results).
 
@@ -105,10 +105,10 @@ As shown in the table below, Hydradancer currently supports 5 endpoints other th
 
 |Board|Maximum speed |Number of endpoints (not EP0) |Host mode|
 |:---:|:----:|:-:|:-:|
-Facedancer21/Raspdancer |USB2 Full-speed |EP1 OUT, EP2 IN, EP3 IN |yes|
+Facedancer21/Raspdancer |USB2 Full-speed |EP1 OUT, EP2 IN, EP3 IN |no|
 GreatFET One |USB2 Full-speed |3 IN / 3 OUT |yes|
 **Hydradancer** |USB2 High-speed |5 IN / 5 OUT |no|
-(Cynthion/LUNA)(coming early 2024) |(USB2 High-speed) |(15 IN / 15 OUT) |(yes)|
+Cynthion |USB2 High-speed | 15 IN / 15 OUT | no |
 
 <p style="text-align: center "><em>Facedancer backends functionalities</em></p>
 
@@ -119,7 +119,7 @@ Previous results for Hydradancer used priming, which made it faster. The new ver
 <table class="table table-striped">
   <thead>
     <tr>
-      <th>&nbsp;</th>
+      <th class="blank level0" >&nbsp;</th>
       <th>Write average estimate</th>
       <th>Relative write uncertainty</th>
       <th>Write transfer size</th>
@@ -131,61 +131,61 @@ Previous results for Hydradancer used priming, which made it faster. The new ver
   </thead>
   <tbody>
     <tr>
-      <th>Hydradancer High-speed (firmware v1.3)</th>
-      <td>3911±151 KB/s</td>
-      <td>4%</td>
-      <td>499.712KB</td>
-      <td>2653±96 KB/s</td>
-      <td>4%</td>
-      <td>499.712KB</td>
-      <td>99.9%</td>
-    </tr>
-    <tr>
-      <th>Hydradancer High-speed (priming) (firmware v1.3)</th>
-      <td>3788±194 KB/s</td>
-      <td>5%</td>
-      <td>499.712KB</td>
-      <td>2962±118 KB/s</td>
-      <td>4%</td>
-      <td>499.712KB</td>
-      <td>99.9%</td>
-    </tr>
-    <tr>
-      <th>Hydradancer Full-speed (priming) (firmware v1.3)</th>
-      <td>369.80±2.46 KB/s</td>
+      <th>Hydradancer High-speed (priming)</th>
+      <td>4716.122±68.386 KB/s</td>
       <td>1%</td>
-      <td>49.984KB</td>
-      <td>352.35±6.66 KB/s</td>
+      <td>499.712KB</td>
+      <td>3882.371±45.116 KB/s</td>
+      <td>1%</td>
+      <td>499.712KB</td>
+      <td>99.9%</td>
+    </tr>
+    <tr>
+      <th>Hydradancer High-speed</th>
+      <td>4468.799±68.697 KB/s</td>
       <td>2%</td>
-      <td>49.984KB</td>
+      <td>499.712KB</td>
+      <td>3397.462±53.952 KB/s</td>
+      <td>2%</td>
+      <td>499.712KB</td>
       <td>99.9%</td>
     </tr>
     <tr>
-      <th>Hydradancer Full-speed (firmware v1.3)</th>
-      <td>369.66±4.98 KB/s</td>
+      <th>Hydradancer Full-speed (priming)</th>
+      <td>383.857±0.195 KB/s</td>
+      <td>0%</td>
+      <td>49.984KB</td>
+      <td>409.299±3.939 KB/s</td>
       <td>1%</td>
       <td>49.984KB</td>
-      <td>266.64±7.32 KB/s</td>
-      <td>3%</td>
+      <td>99.9%</td>
+    </tr>
+    <tr>
+      <th>Hydradancer Full-speed</th>
+      <td>383.437±0.939 KB/s</td>
+      <td>0%</td>
+      <td>49.984KB</td>
+      <td>315.428±1.768 KB/s</td>
+      <td>1%</td>
       <td>49.984KB</td>
       <td>99.9%</td>
     </tr>
     <tr>
-      <th>GreatFET One Full-speed (one by one) (git-v2021.2.1-64-g2409575 firmware)</th>
-      <td>32.42±0.85 KB/s</td>
+      <th>GreatFET One Full-speed un par un</th>
+      <td>32.422±0.844 KB/s</td>
       <td>3%</td>
       <td>49.959KB</td>
-      <td>33.07±1.10 KB/s</td>
+      <td>33.066±1.095 KB/s</td>
       <td>3%</td>
       <td>49.984KB</td>
       <td>99.9%</td>
     </tr>
     <tr>
-      <th>Facedancer21 Full-speed (2014-07-05 firmware)</th>
-      <td>0.697±0.000 KB/s</td>
+      <th>Facedancer21 Full-speed</th>
+      <td>0.697±0.0 KB/s</td>
       <td>0%</td>
       <td>9.984KB</td>
-      <td>0.682±0.000 KB/s</td>
+      <td>0.682±0.0 KB/s</td>
       <td>0%</td>
       <td>9.984KB</td>
       <td>99.9%</td>
@@ -241,6 +241,8 @@ Currently Hydradancer is usable (see the list of working devices above), however
 Solving this issue has proven difficult : it looks random, does not happen immediately (sometimes never). Adding logs or debugging using a USB sniffer can add additional delays and issues. Other architectures have been tried (FreeRTOS, doing all the processing in the interrupt handlers) however they proved to be slower and not more stable.
 
 We implemented a [firmware](https://github.com/hydrausb3/wch-ch56x-lib/tree/main/tests/test_firmware_usb_stress_test) to test the USB2 implementation of `wch-ch56x-lib` with the same stress test and it passes with 100000 tries in both HS and FS. However, Hydradancer's firmware is more complex (more interrupts, USB3 and USB2 at the same time, delays to synchronize with Facedancer).
+
+**Update** We contacted _WCH_ about this issue, however we did not manage to get technical answers. The archive provided to _WCH_ that tries to isolate the issue is available in _docs/wch_questions_wch569.zip_ if you want to take a look.
 
 # How to contribute
 
