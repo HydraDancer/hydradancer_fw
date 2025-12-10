@@ -105,10 +105,10 @@ As shown in the table below, Hydradancer currently supports 5 endpoints other th
 
 |Board|Maximum speed |Number of endpoints (not EP0) |Host mode|
 |:---:|:----:|:-:|:-:|
-Facedancer21/Raspdancer |USB2 Full-speed |EP1 OUT, EP2 IN, EP3 IN |yes|
+Facedancer21/Raspdancer |USB2 Full-speed |EP1 OUT, EP2 IN, EP3 IN |no|
 GreatFET One |USB2 Full-speed |3 IN / 3 OUT |yes|
 **Hydradancer** |USB2 High-speed |5 IN / 5 OUT |no|
-(Cynthion/LUNA)(coming early 2024) |(USB2 High-speed) |(15 IN / 15 OUT) |(yes)|
+Cynthion |USB2 High-speed | 15 IN / 15 OUT | no |
 
 <p style="text-align: center "><em>Facedancer backends functionalities</em></p>
 
