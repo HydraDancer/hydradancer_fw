@@ -19,8 +19,6 @@ jobs:
             git submodule update --init
             cd submodules/wch-ch56x-lib
             git submodule update --init
-            cd ../..
-            git fetch --prune --unshallow
 
       - name: Cache GCC archive
         uses: actions/cache@v3
@@ -70,7 +68,7 @@ jobs:
             out/**/*.elf
 
   native_benchmarks:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         PROJECT_NAME: [test_loopback, test_speedtest]
@@ -79,7 +77,6 @@ jobs:
     - name: Checkout
       run: |
         git submodule update --init
-        git fetch --prune --unshallow
 
     - name: Install prerequisites
       run: |
@@ -109,7 +106,7 @@ jobs:
         path: hydradancer/tests/native/${{ matrix.PROJECT_NAME }}/${{ matrix.PROJECT_NAME }}
 
   facedancer_replacements:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         PROJECT_NAME: [facedancer_replacement_loopback, facedancer_replacement_speedtest]
@@ -118,7 +115,6 @@ jobs:
     - name: Checkout
       run: |
         git submodule update --init
-        git fetch --prune --unshallow
 
     - name: Install prerequisites
       run: |
