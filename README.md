@@ -11,9 +11,9 @@ The following examples have been confirmed working:
 * template.py
 * usbproxy.py : USB Flash Drive in USB2 High-Speed
 
-**NOTE** : current results for the [highly-stressed stress test of Facedancer](https://github.com/greatscottgadgets/facedancer/blob/main/test/test_stress.py) with 20000 tries.
+**WARNING** : current results for the [highly-stressed stress test of Facedancer](https://github.com/greatscottgadgets/facedancer/blob/main/test/test_stress.py) with 20000 tries.
 
-TLDR : the stress test usually fails after a few thousand tries in both Full-Speed and High-Speed. In practice, Hydradancer is usable (see list of devices above) but might fail in highly-stressed situations. Note that we increased the requirements for this stress test (using the highly-stressed one by default and going up to 20000 tries instead of 100).
+TLDR : the stress test usually fails after a few thousand tries in both Full-Speed and High-Speed. In practice, Hydradancer is usable (see list of devices above) but might fail in highly-stressed situations. It is sufficient for hacking but if you are proxying devices or emulating a mass-storage device, be prepared for data corruption. Note that we increased the requirements for this stress test (using the highly-stressed one by default and going up to 20000 tries instead of 100).
 
 More about it [here](#stress-test-results).
 
